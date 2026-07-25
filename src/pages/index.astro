@@ -22,7 +22,7 @@ import Logo from "../components/Logo.astro";
   <!-- 1 · HERO: logo only, fills the first viewport -->
   <section class="hero" id="hero">
     <div class="hero-logo">
-      <Logo size={150} />
+      <Logo size={240} />
     </div>
     <h1>Open <span>Fiches</span></h1>
     <p>
@@ -92,8 +92,8 @@ import Logo from "../components/Logo.astro";
 
   .hero-logo :global(img) {
     display: block;
-    width: 150px;
-    height: 150px;
+    width: min(240px, 62vw);
+    height: auto;
   }
 
   .hero h1 {
