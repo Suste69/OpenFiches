@@ -1,0 +1,103 @@
+---
+/**
+ * SiteFooter.astro — identical on every page.
+ * States the educational mission (the house wins in the long run, even for
+ * a "robot" playing perfectly) and invites contributions on GitHub.
+ */
+const repoUrl = "https://github.com/your-user/open-gambling";
+---
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-title">🎓 An educational project — not an invitation to gamble</div>
+
+    <p class="footer-text">
+      Open Fiches exists to <strong>prove with math</strong> why the house wins in the long run.
+      Even if you play perfectly — like a robot that never makes a wrong decision — the probability
+      of losing over time remains <strong>almost certain</strong>: the expected value is nearly always
+      negative, and variance only postpones the outcome without changing it. No betting system can
+      turn an unfavorable game into a favorable one.
+    </p>
+
+    <p class="footer-text">Want to add a game, a side bet, or fix a formula?</p>
+
+    <div class="footer-contribute">
+      <a href={repoUrl} target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+        </svg>
+        Contribute on GitHub
+      </a>
+    </div>
+
+    <div class="footer-legal">
+      Open Fiches is an open-source project for purely educational purposes. No real-money gambling.
+      If gambling is a problem for you or someone you know, please reach out to the support services in your country.
+    </div>
+  </div>
+</footer>
+
+<style>
+  footer {
+    position: relative;
+    z-index: 1;
+    margin-top: 80px;
+    border-top: 1px solid var(--border);
+    background: var(--card);
+    padding: 48px 24px;
+  }
+
+  .footer-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+
+  .footer-title {
+    font-size: 17px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .footer-text {
+    color: var(--ink-soft);
+    font-size: 14px;
+    line-height: 1.7;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .footer-text strong {
+    color: var(--ink);
+  }
+
+  .footer-contribute a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #0d1017;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 700;
+    transition: background 0.2s;
+  }
+
+  .footer-contribute a:hover {
+    background: #14b8a6;
+  }
+
+  .footer-legal {
+    font-size: 12px;
+    color: #5b6575;
+    margin-top: 14px;
+  }
+</style>

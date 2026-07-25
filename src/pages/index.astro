@@ -1,0 +1,237 @@
+---
+/**
+ * index.astro — homepage.
+ *
+ * Structure (top to bottom):
+ *   1. Full-screen hero: centered logo only, no header visible
+ *   2. Header slides in once the hero is scrolled past (JS below)
+ *   3. Sticky search bar filtering the game cards by name or keywords
+ *   4. Game cards in a 2-column grid (1 column on mobile)
+ *   5. Shared footer
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import GameCard from "../components/GameCard.astro";
+import Logo from "../components/Logo.astro";
+---
+
+<BaseLayout title="The math behind the casino" description="Open Fiches — The math that breaks the casino's illusions.">
+  <SiteHeader />
+
+  <!-- 1 · HERO: logo only, fills the first viewport -->
+  <section class="hero" id="hero">
+    <div class="hero-logo">
+      <Logo size={190} />
+    </div>
+    <h1>Open <span>Fiches</span></h1>
+    <p>
+      The math that breaks the casino's illusions — verifiable formulas
+      and reproducible simulations.
+    </p>
+    <div class="scroll-hint">Scroll to explore ↓</div>
+  </section>
+
+  <main>
+    <!-- 3 · Search: filters cards by name, tags or searchKeywords -->
+    <div class="search-wrap">
+      <div class="search-box">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <input id="search" type="text" placeholder="Search a game by name or parameters…" autocomplete="off" />
+      </div>
+      <div class="search-hint">
+        Try: <code>baccarat</code> · <code>cards</code> · <code>low variance</code> · <code>sidebet</code>
+      </div>
+    </div>
+
+    <!-- 4 · Game grid: exactly 2 columns on desktop -->
+    <div class="games-grid" id="gamesGrid">
+      <GameCard
+        name="Baccarat"
+        icon="🃏"
+        houseEdge="1.06%"
+        edgeNote="banker bet"
+        variance="Low"
+        tags={["cards", "banker", "sidebet"]}
+        mathHref="/games/baccarat"
+        simulationHref="/games/baccarat/simulator"
+        searchKeywords="baccarat cards banker player tie punto banco low variance sidebet"
+      />
+      <!-- New games get one more <GameCard /> here -->
+    </div>
+
+    <div class="no-results" id="noResults">
+      No game found. Want to suggest it?
+      <a href="https://github.com/your-user/open-gambling">Contribute on GitHub →</a>
+    </div>
+  </main>
+
+  <SiteFooter />
+</BaseLayout>
+
+<style>
+  /* ---- hero ---- */
+  .hero {
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .hero-logo {
+    margin-bottom: 30px;
+    filter: drop-shadow(0 0 30px rgba(45, 212, 191, 0.15));
+  }
+
+  .hero h1 {
+    font-size: clamp(34px, 6vw, 64px);
+    letter-spacing: -1px;
+  }
+
+  .hero h1 span {
+    color: var(--accent);
+  }
+
+  .hero p {
+    margin-top: 14px;
+    color: var(--ink-soft);
+    font-size: clamp(15px, 2vw, 19px);
+    max-width: 520px;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 36px;
+    color: var(--ink-soft);
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    animation: bounce 2s infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(8px); }
+  }
+
+  /* ---- main content ---- */
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  /* ---- sticky search ---- */
+  .search-wrap {
+    position: sticky;
+    top: 76px;
+    z-index: 5;
+    margin-bottom: 36px;
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .search-box:focus-within {
+    border-color: var(--accent);
+  }
+
+  .search-box svg {
+    flex-shrink: 0;
+    color: var(--ink-soft);
+  }
+
+  .search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    background: transparent;
+    color: var(--ink);
+  }
+
+  .search-box input::placeholder {
+    color: #5b6575;
+  }
+
+  .search-hint {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    padding-left: 6px;
+  }
+
+  .search-hint code {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+
+  /* ---- 2-column game grid ---- */
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  @media (max-width: 680px) {
+    .games-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .no-results {
+    display: none;
+    text-align: center;
+    color: var(--ink-soft);
+    padding: 60px 20px;
+    font-size: 15px;
+  }
+</style>
+
+<script>
+  // Show the header only after the hero leaves the viewport.
+  const header = document.getElementById("site-header")!;
+  const hero = document.getElementById("hero")!;
+  new IntersectionObserver(
+    ([entry]) => header.classList.toggle("visible", !entry.isIntersecting),
+    { threshold: 0.15 }
+  ).observe(hero);
+
+  // Live search: every word must appear in the card's text OR its
+  // data-search keywords, so "low variance cards" narrows correctly.
+  const input = document.getElementById("search") as HTMLInputElement;
+  const cards = [...document.querySelectorAll<HTMLElement>(".game-card")];
+  const noResults = document.getElementById("noResults")!;
+
+  input.addEventListener("input", () => {
+    const words = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    let visible = 0;
+
+    cards.forEach((card) => {
+      const haystack = ((card.dataset.search ?? "") + " " + card.textContent).toLowerCase();
+      const match = words.every((w) => haystack.includes(w));
+      card.style.display = match ? "" : "none";
+      if (match) visible++;
+    });
+
+    noResults.style.display = visible ? "none" : "block";
+  });
+</script>

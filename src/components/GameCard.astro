@@ -1,0 +1,201 @@
+---
+/**
+ * GameCard.astro — homepage card for a single game ("variant 2" style).
+ *
+ * Layout: icon (dashed teal frame) on the left, title + house edge +
+ * variance on the right, two big buttons (MATH / SIMULATION), rounded
+ * tag pills at the bottom.
+ *
+ * Props:
+ *   name          — game name shown as the card title
+ *   icon          — emoji (or short text) used as the placeholder image
+ *   houseEdge     — display string, e.g. "1.06%"
+ *   edgeNote      — optional qualifier, e.g. "banker bet"
+ *   variance      — "Low" | "Medium" | "High" | ...
+ *   tags          — searchable pill labels, e.g. ["cards", "banker"]
+ *   mathHref      — link to the math explanation page
+ *   simulationHref — optional; if omitted the button renders disabled
+ *   searchKeywords — extra lowercase keywords for the search filter
+ */
+interface Props {
+  name: string;
+  icon: string;
+  houseEdge: string;
+  edgeNote?: string;
+  variance: string;
+  tags: string[];
+  mathHref: string;
+  simulationHref?: string;
+  searchKeywords?: string;
+}
+
+const {
+  name,
+  icon,
+  houseEdge,
+  edgeNote,
+  variance,
+  tags,
+  mathHref,
+  simulationHref,
+  searchKeywords = "",
+} = Astro.props;
+---
+
+<article class="game-card" data-search={searchKeywords}>
+  <div class="card-body">
+    <div class="card-img" aria-hidden="true">{icon}</div>
+    <div class="card-info">
+      <h3 class="card-title">{name}</h3>
+      <p class="card-stat edge">
+        house edge: <strong>{houseEdge}</strong>
+        {edgeNote && <span class="edge-note">({edgeNote})</span>}
+      </p>
+      <p class="card-stat">variance: <strong>{variance}</strong></p>
+    </div>
+  </div>
+
+  <div class="card-actions">
+    <a class="card-btn" href={mathHref}>Math</a>
+    {
+      simulationHref ? (
+        <a class="card-btn primary" href={simulationHref}>Simulation</a>
+      ) : (
+        /* Disabled placeholder until the simulator is built */
+        <span class="card-btn primary disabled" title="Coming soon">Simulation</span>
+      )
+    }
+  </div>
+
+  <div class="card-tags">
+    {tags.map((tag) => <span class="tag">{tag}</span>)}
+  </div>
+</article>
+
+<style>
+  .game-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  }
+
+  .game-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    border-color: var(--accent);
+  }
+
+  .card-body {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .card-img {
+    width: 110px;
+    height: 110px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    border: 2px dashed var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 44px;
+  }
+
+  .card-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 4px;
+  }
+
+  .card-title {
+    font-size: 20px;
+    font-weight: 800;
+  }
+
+  .card-stat {
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  .card-stat strong {
+    color: var(--ink);
+  }
+
+  .card-stat.edge strong {
+    color: var(--danger);
+  }
+
+  .edge-note {
+    font-size: 12px;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .card-btn {
+    flex: 1;
+    text-align: center;
+    padding: 11px 0;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    color: var(--ink);
+    transition: all 0.2s;
+  }
+
+  .card-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .card-btn.primary {
+    background: var(--accent);
+    color: #0d1017;
+    border-color: var(--accent);
+  }
+
+  .card-btn.primary:hover {
+    background: #14b8a6;
+    color: #0d1017;
+  }
+
+  .card-btn.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .card-btn.disabled:hover {
+    background: var(--accent);
+    color: #0d1017;
+  }
+
+  .card-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+</style>

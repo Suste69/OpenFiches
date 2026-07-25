@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open Gambling — La matematica dietro i casinò</title>
+<style>
+  :root{
+    --bg:#0d1017;
+    --grid-line:#1c2230;
+    --ink:#e8ecf3;
+    --ink-soft:#8b95a5;
+    --accent:#2dd4bf;
+    --accent-soft:rgba(45,212,191,.12);
+    --warn:#fbbf24;
+    --danger:#f87171;
+    --card:#151a24;
+    --card-hover:#1a212e;
+    --border:#242c3b;
+    --radius:14px;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--ink);
+    background-color:var(--bg);
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size:28px 28px;
+    min-height:100vh;
+  }
+  ::selection{background:var(--accent);color:#0d1017}
+
+  /* ---------- fiches decorative di sfondo ---------- */
+  .chips-layer{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .chip{position:absolute;border-radius:50%;opacity:.07;border:14px dashed currentColor;box-shadow:inset 0 0 0 8px currentColor}
+  .chip::after{content:"";position:absolute;inset:14px;border-radius:50%;border:2px solid currentColor}
+  .chip.c1{color:var(--accent);width:220px;height:220px;top:8%;left:-60px}
+  .chip.c2{color:var(--danger);width:140px;height:140px;top:18%;right:6%}
+  .chip.c3{color:var(--warn);width:180px;height:180px;top:55%;left:10%}
+  .chip.c4{color:var(--accent);width:120px;height:120px;bottom:12%;right:14%}
+  .chip.c5{color:#e8ecf3;width:90px;height:90px;top:40%;right:30%}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;z-index:1;height:100vh;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  }
+  .hero-logo{width:190px;height:190px;margin-bottom:30px;filter:drop-shadow(0 0 30px rgba(45,212,191,.15))}
+  .hero h1{font-size:clamp(34px,6vw,64px);letter-spacing:-1px}
+  .hero h1 span{color:var(--accent)}
+  .hero p{margin-top:14px;color:var(--ink-soft);font-size:clamp(15px,2vw,19px);max-width:520px}
+  .scroll-hint{position:absolute;bottom:36px;color:var(--ink-soft);font-size:13px;letter-spacing:2px;text-transform:uppercase;animation:bounce 2s infinite}
+  @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+
+  /* ---------- HEADER ---------- */
+  header{
+    position:fixed;top:0;left:0;right:0;z-index:10;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 28px;
+    background:rgba(13,16,23,.85);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+    transform:translateY(-100%);transition:transform .35s ease;
+  }
+  header.visible{transform:translateY(0)}
+  .header-logo{display:flex;align-items:center;gap:12px;font-weight:800;font-size:18px;text-decoration:none;color:var(--ink)}
+  .header-logo svg{width:32px;height:32px}
+  .header-logo span em{font-style:normal;color:var(--accent)}
+  .github-btn{
+    display:flex;align-items:center;gap:8px;padding:8px 14px;
+    border:1px solid var(--border);border-radius:999px;background:var(--card);
+    text-decoration:none;color:var(--ink);font-size:14px;font-weight:600;transition:border-color .2s;
+  }
+  .github-btn:hover{border-color:var(--accent)}
+  .github-btn .stars{display:flex;align-items:center;gap:4px;color:var(--warn);font-variant-numeric:tabular-nums}
+
+  /* ---------- MAIN ---------- */
+  main{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:100px 24px 60px}
+
+  /* ---------- ricerca ---------- */
+  .search-wrap{position:sticky;top:76px;z-index:5;margin-bottom:36px}
+  .search-box{
+    display:flex;align-items:center;gap:12px;background:var(--card);
+    border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px 20px;box-shadow:0 4px 24px rgba(0,0,0,.35);
+  }
+  .search-box:focus-within{border-color:var(--accent)}
+  .search-box svg{flex-shrink:0;color:var(--ink-soft)}
+  .search-box input{flex:1;border:none;outline:none;font-size:16px;background:transparent;color:var(--ink)}
+  .search-box input::placeholder{color:#5b6575}
+  .search-hint{margin-top:8px;font-size:13px;color:var(--ink-soft);padding-left:6px}
+  .search-hint code{background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:6px;font-size:12px}
+
+  /* ---------- griglia 2 colonne ---------- */
+  .games-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+  @media(max-width:680px){.games-grid{grid-template-columns:1fr}}
+
+  .variant-label{
+    font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+    color:var(--warn);margin-bottom:6px;padding-left:2px;
+  }
+
+  /* ============================================================
+     BASE comune a tutte le card (stile del tuo sketch)
+     ============================================================ */
+  .g{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:20px;
+    display:flex;flex-direction:column;gap:16px;
+    transition:transform .2s, box-shadow .2s, border-color .2s;
+    cursor:pointer;
+  }
+  .g:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(0,0,0,.45)}
+  .g-body{display:flex;gap:16px;align-items:flex-start}
+  .g-img{
+    width:110px;height:110px;flex-shrink:0;
+    border-radius:12px;
+    background:var(--accent-soft);
+    display:flex;align-items:center;justify-content:center;
+    font-size:44px;
+  }
+  .g-info{flex:1;display:flex;flex-direction:column;gap:4px;padding-top:4px}
+  .g-title{font-size:20px;font-weight:800}
+  .g-stat{font-size:14px;color:var(--ink-soft)}
+  .g-stat b{color:var(--ink)}
+  .g-stat.edge b{color:var(--danger)}
+  .g-actions{display:flex;gap:10px}
+  .g-btn{
+    flex:1;text-align:center;padding:11px 0;border-radius:10px;
+    font-size:13px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
+    text-decoration:none;border:1px solid var(--border);color:var(--ink);
+    transition:all .2s;
+  }
+  .g-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .g-btn.primary{background:var(--accent);color:#0d1017;border-color:var(--accent)}
+  .g-btn.primary:hover{background:#14b8a6;color:#0d1017}
+  .g-tags{display:flex;gap:8px;flex-wrap:wrap;font-size:13px}
+  .g-tags a{color:var(--accent);text-decoration:none;font-weight:600}
+  .g-tags a:hover{text-decoration:underline}
+
+  /* ============================================================
+     VARIANTE 1 — fedele al tuo sketch: tag #hashtag sotto i bottoni
+     ============================================================ */
+  .v1:hover{border-color:var(--accent)}
+
+  /* ============================================================
+     VARIANTE 2 — badge tondi per i tag, immagine con bordo
+     ============================================================ */
+  .v2 .g-img{background:transparent;border:2px dashed var(--accent)}
+  .v2 .g-tags a{
+    background:var(--accent-soft);
+    padding:3px 12px;border-radius:999px;font-size:12px;
+  }
+
+  /* ============================================================
+     VARIANTE 3 — dati in linea con separatore, niente label
+     ============================================================ */
+  .v3 .g-info{gap:8px}
+  .v3 .g-data{
+    display:flex;align-items:center;gap:10px;
+    font-size:15px;
+  }
+  .v3 .g-data .dot{width:4px;height:4px;border-radius:50%;background:var(--ink-soft)}
+  .v3 .g-data .val{font-weight:800;font-variant-numeric:tabular-nums}
+  .v3 .g-data .val.bad{color:var(--danger)}
+  .v3 .g-data .lbl{color:var(--ink-soft);font-size:12px;text-transform:uppercase;letter-spacing:1px}
+
+  /* ============================================================
+     VARIANTE 4 — immagine grande a tutta larghezza sopra
+     ============================================================ */
+  .v4 .g-body{flex-direction:column}
+  .v4 .g-img{width:100%;height:90px;font-size:40px}
+  .v4 .g-info{flex-direction:row;align-items:center;justify-content:space-between;padding-top:0}
+  .v4 .g-right{display:flex;gap:16px;font-size:13px;color:var(--ink-soft)}
+  .v4 .g-right b{display:block;color:var(--danger);font-size:15px}
+  .v4 .g-right .var b{color:var(--ink)}
+
+  /* ============================================================
+     VARIANTE 5 — stile "terminale/scheda tecnica" monospace
+     ============================================================ */
+  .v5{font-family:"Cascadia Code","SF Mono",Consolas,monospace}
+  .v5 .g-title{font-size:17px}
+  .v5 .g-title::before{content:"> ";color:var(--accent)}
+  .v5 .g-stat{font-size:13px}
+  .v5 .g-stat::before{content:"· "}
+  .v5 .g-btn{border-radius:6px;font-family:inherit}
+  .v5 .g-img{background:transparent;border:1px solid var(--border);font-size:38px}
+  .v5 .g-tags a::before{content:"#";color:var(--ink-soft)}
+
+  /* ============================================================
+     VARIANTE 6 — bordo colorato in base alla categoria + tag in alto
+     ============================================================ */
+  .v6{border-left:4px solid var(--accent)}
+  .v6 .g-head{display:flex;align-items:center;justify-content:space-between}
+  .v6 .g-tags{padding:0}
+  .v6 .g-tags a{font-size:12px}
+  .v6 .g-body{margin-top:-4px}
+
+  .no-results{display:none;text-align:center;color:var(--ink-soft);padding:60px 20px;font-size:15px}
+  .no-results a{color:var(--accent)}
+
+  /* ---------- FOOTER ---------- */
+  footer{position:relative;z-index:1;margin-top:80px;border-top:1px solid var(--border);background:var(--card);padding:48px 24px}
+  .footer-inner{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:20px;text-align:center}
+  .footer-title{font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px}
+  .footer-text{color:var(--ink-soft);font-size:14px;line-height:1.7;max-width:680px;margin:0 auto}
+  .footer-text b{color:var(--ink)}
+  .footer-contribute{margin-top:6px}
+  .footer-contribute a{
+    display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:999px;
+    background:var(--accent);color:#0d1017;text-decoration:none;font-size:14px;font-weight:700;transition:background .2s;
+  }
+  .footer-contribute a:hover{background:#14b8a6}
+  .footer-legal{font-size:12px;color:#5b6575;margin-top:14px}
+</style>
+</head>
+<body>
+
+<div class="chips-layer">
+  <div class="chip c1"></div><div class="chip c2"></div><div class="chip c3"></div><div class="chip c4"></div><div class="chip c5"></div>
+</div>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <svg class="hero-logo" viewBox="0 0 200 200" fill="none" aria-label="Open Gambling — un martello che rompe le fiches">
+    <g stroke="#fbbf24" stroke-width="4" stroke-linecap="round">
+      <line x1="118" y1="58" x2="132" y2="44"/>
+      <line x1="126" y1="72" x2="146" y2="66"/>
+      <line x1="110" y1="48" x2="116" y2="30"/>
+    </g>
+    <g transform="rotate(35 90 70)">
+      <rect x="52" y="34" width="76" height="34" rx="8" fill="#2dd4bf"/>
+      <rect x="44" y="38" width="14" height="26" rx="5" fill="#14b8a6"/>
+      <rect x="82" y="66" width="16" height="82" rx="8" fill="#8b5cf6"/>
+      <rect x="82" y="66" width="16" height="20" rx="8" fill="#7c3aed"/>
+    </g>
+    <g>
+      <ellipse cx="52" cy="158" rx="30" ry="12" fill="#f87171"/>
+      <rect x="22" y="144" width="60" height="14" fill="#f87171"/>
+      <ellipse cx="52" cy="144" rx="30" ry="12" fill="#fca5a5"/>
+      <ellipse cx="52" cy="144" rx="14" ry="6" fill="#f87171"/>
+    </g>
+    <g>
+      <path d="M118 150 a26 11 0 0 1 22 -6 l-8 14 z" fill="#2dd4bf"/>
+      <path d="M112 152 q6 -12 24 -10 l-6 12 q-12 -2 -18 -2 z" fill="#5eead4"/>
+      <path d="M152 146 a26 11 0 0 1 22 8 l-14 12 z" fill="#2dd4bf"/>
+      <path d="M150 144 q14 -4 22 6 l-10 10 q-8 -10 -12 -16 z" fill="#5eead4"/>
+      <circle cx="146" cy="164" r="3" fill="#2dd4bf"/>
+      <circle cx="156" cy="170" r="2" fill="#5eead4"/>
+      <circle cx="136" cy="170" r="2" fill="#5eead4"/>
+    </g>
+    <ellipse cx="100" cy="182" rx="70" ry="7" fill="#000" opacity=".35"/>
+  </svg>
+  <h1>Open <span>Gambling</span></h1>
+  <p>La matematica che rompe le illusioni del casinò — formule verificabili e simulazioni riproducibili.</p>
+  <div class="scroll-hint">Scorri per esplorare ↓</div>
+</section>
+
+<!-- HEADER -->
+<header id="header">
+  <a class="header-logo" href="#hero">
+    <svg viewBox="0 0 200 200" fill="none">
+      <g transform="rotate(35 90 70)">
+        <rect x="52" y="34" width="76" height="34" rx="8" fill="#2dd4bf"/>
+        <rect x="82" y="66" width="16" height="82" rx="8" fill="#8b5cf6"/>
+      </g>
+      <ellipse cx="52" cy="158" rx="30" ry="12" fill="#f87171"/>
+      <path d="M118 150 a26 11 0 0 1 22 -6 l-8 14 z" fill="#2dd4bf"/>
+      <path d="M152 146 a26 11 0 0 1 22 8 l-14 12 z" fill="#2dd4bf"/>
+    </svg>
+    <span>Open<em>Gambling</em></span>
+  </a>
+  <a class="github-btn" href="https://github.com/tuo-utente/open-gambling" target="_blank" rel="noopener">
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+    GitHub
+    <span class="stars">★ 128</span>
+  </a>
+</header>
+
+<main>
+
+  <div class="search-wrap">
+    <div class="search-box">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="search" type="text" placeholder="Cerca un gioco per nome o per parametri…" autocomplete="off">
+    </div>
+    <div class="search-hint">
+      Prova: <code>blackjack</code> · <code>alta varianza</code> · <code>carte</code> · <code>sidebet</code>
+    </div>
+  </div>
+
+  <div class="games-grid" id="gamesGrid">
+
+    <!-- ============ VARIANTE 1: fedele al tuo sketch ============ -->
+    <div class="card-wrap" data-search="roulette ruota varianza media europea">
+      <div class="variant-label">Variante 1 — il tuo sketch</div>
+      <div class="g v1">
+        <div class="g-body">
+          <div class="g-img">🎡</div>
+          <div class="g-info">
+            <div class="g-title">Roulette</div>
+            <div class="g-stat edge">house edge: <b>2,70%</b></div>
+            <div class="g-stat">varianza: <b>Media</b></div>
+          </div>
+        </div>
+        <div class="g-actions">
+          <a class="g-btn" href="#">Math</a>
+          <a class="g-btn primary" href="#">Simulation</a>
+        </div>
+        <div class="g-tags">
+          <a href="#">#ruota</a><a href="#">#europea</a><a href="#">#semplice</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ VARIANTE 2: tag badge tondi ============ -->
+    <div class="card-wrap" data-search="blackjack carte sidebet conteggio varianza media">
+      <div class="variant-label">Variante 2 — badge tondi</div>
+      <div class="g v2">
+        <div class="g-body">
+          <div class="g-img">🂡</div>
+          <div class="g-info">
+            <div class="g-title">Blackjack</div>
+            <div class="g-stat edge">house edge: <b>~0,5%</b></div>
+            <div class="g-stat">varianza: <b>Media</b></div>
+          </div>
+        </div>
+        <div class="g-actions">
+          <a class="g-btn" href="#">Math</a>
+          <a class="g-btn primary" href="#">Simulation</a>
+        </div>
+        <div class="g-tags">
+          <a href="#">carte</a><a href="#">sidebet</a><a href="#">conteggio</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ VARIANTE 3: dati in linea ============ -->
+    <div class="card-wrap" data-search="baccarat carte banker varianza bassa">
+      <div class="variant-label">Variante 3 — dati in linea</div>
+      <div class="g v3">
+        <div class="g-body">
+          <div class="g-img">🃏</div>
+          <div class="g-info">
+            <div class="g-title">Baccarat</div>
+            <div class="g-data">
+              <span><span class="lbl">edge</span> <span class="val bad">1,06%</span></span>
+              <span class="dot"></span>
+              <span><span class="lbl">var</span> <span class="val">Bassa</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="g-actions">
+          <a class="g-btn" href="#">Math</a>
+          <a class="g-btn primary" href="#">Simulation</a>
+        </div>
+        <div class="g-tags">
+          <a href="#">#carte</a><a href="#">#banker</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ VARIANTE 4: immagine grande sopra ============ -->
+    <div class="card-wrap" data-search="craps dadi proposition varianza alta">
+      <div class="variant-label">Variante 4 — banner sopra</div>
+      <div class="g v4">
+        <div class="g-body">
+          <div class="g-img">🎲</div>
+          <div class="g-info">
+            <div class="g-title">Craps</div>
+            <div class="g-right">
+              <div><b>1,4–16,7%</b>edge</div>
+              <div class="var"><b>Alta</b>varianza</div>
+            </div>
+          </div>
+        </div>
+        <div class="g-actions">
+          <a class="g-btn" href="#">Math</a>
+          <a class="g-btn primary" href="#">Simulation</a>
+        </div>
+        <div class="g-tags">
+          <a href="#">#dadi</a><a href="#">#trappole</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ VARIANTE 5: stile terminale ============ -->
+    <div class="card-wrap" data-search="slot rulli rtp varianza alta jackpot">
+      <div class="variant-label">Variante 5 — terminale</div>
+      <div class="g v5">
+        <div class="g-body">
+          <div class="g-img">🎰</div>
+          <div class="g-info">
+            <div class="g-title">slot_machine</div>
+            <div class="g-stat edge">house_edge: <b>2–15%</b></div>
+            <div class="g-stat">varianza: <b>Molto alta</b></div>
+          </div>
+        </div>
+        <div class="g-actions">
+          <a class="g-btn" href="#">./math</a>
+          <a class="g-btn primary" href="#">./simulate</a>
+        </div>
+        <div class="g-tags">
+          <a href="#">rulli</a><a href="#">jackpot</a><a href="#">rtp</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ VARIANTE 6: bordo laterale + tag in alto ============ -->
+    <div class="card-wrap" data-search="video poker carte paytable varianza media strategia">
+      <div class="variant-label">Variante 6 — bordo + tag in alto</div>
+      <div class="g v6">
+        <div class="g-head">
+          <div class="g-tags"><a href="#">#carte</a><a href="#">#paytable</a></div>
+        </div>
+        <div class="g-body">
+          <div class="g-img">♠️</div>
+          <div class="g-info">
+            <div class="g-title">Video Poker</div>
+            <div class="g-stat edge">house edge: <b>0,5–5%</b></div>
+            <div class="g-stat">varianza: <b>Media</b></div>
+          </div>
+        </div>
+        <div class="g-actions">
+          <a class="g-btn" href="#">Math</a>
+          <a class="g-btn primary" href="#">Simulation</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="no-results" id="noResults">
+    Nessun gioco trovato. Vuoi proporlo? <a href="https://github.com/tuo-utente/open-gambling">Contribuisci su GitHub →</a>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-title">🎓 Progetto educativo — non un invito a giocare</div>
+    <p class="footer-text">
+      Open Gambling esiste per <b>dimostrare con la matematica</b> perché il banco vince nel lungo periodo.
+      Anche giocando in modo perfetto, come un robot che non sbaglia mai una decisione, la probabilità di
+      perdere nel lungo termine resta <b>pressoché certa</b>: il valore atteso è quasi sempre negativo e la
+      varianza posticipa soltanto l'esito, senza cambiarlo. Nessuna strategia di puntata può trasformare
+      un gioco sfavorevole in uno favorevole.
+    </p>
+    <p class="footer-text">Vuoi aggiungere un gioco, una side bet o correggere una formula?</p>
+    <div class="footer-contribute">
+      <a href="https://github.com/tuo-utente/open-gambling" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        Contribuisci su GitHub
+      </a>
+    </div>
+    <div class="footer-legal">
+      Open Gambling è un progetto open source a scopo puramente educativo. Nessun gioco con denaro reale. Se il gioco d'azzardo è un problema per te o per qualcuno che conosci, cerca supporto presso i servizi dedicati del tuo Paese.
+    </div>
+  </div>
+</footer>
+
+<script>
+  const header = document.getElementById('header');
+  const hero = document.getElementById('hero');
+  new IntersectionObserver(
+    ([e]) => header.classList.toggle('visible', !e.isIntersecting),
+    { threshold: 0.15 }
+  ).observe(hero);
+
+  const input = document.getElementById('search');
+  const wraps = [...document.querySelectorAll('.card-wrap')];
+  const noResults = document.getElementById('noResults');
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    let visible = 0;
+    wraps.forEach(w => {
+      const haystack = (w.dataset.search + ' ' + w.textContent).toLowerCase();
+      const match = !q || q.split(/\s+/).every(x => haystack.includes(x));
+      w.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    noResults.style.display = visible ? 'none' : 'block';
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1149 @@
+---
+/**
+ * Baccarat simulator — client-side first.
+ *
+ * This page is static HTML at build time. The simulation runs entirely in
+ * the browser with plain JavaScript: no server, no database, no API calls.
+ *
+ * Layout requested by the project direction:
+ *   - left: every explained count, with card tags and mathematical variance
+ *   - center: simulator controls, results, bankroll chart
+ *   - right: general game information (decks, cut card, CSM, payout rules...)
+ */
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import SiteHeader from "../../../components/SiteHeader.astro";
+import SiteFooter from "../../../components/SiteFooter.astro";
+---
+
+<BaseLayout
+  title="Baccarat Count Simulator"
+  description="A client-side Baccarat simulator for counting systems, side bets, shoe penetration, CSM effects and bankroll variance."
+>
+  <SiteHeader alwaysVisible />
+
+  <main class="sim-page">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Games</a> / <a href="/games/baccarat">Baccarat</a> / <strong>Simulator</strong>
+    </nav>
+
+    <header class="page-header">
+      <div>
+        <h1>Baccarat Count Simulator</h1>
+        <p>
+          Test Baccarat counting systems in the browser. Select a count, configure the shoe,
+          then watch how rare positive-EV spots affect the bankroll path.
+        </p>
+      </div>
+      <div class="client-badge">Client-side only</div>
+    </header>
+
+    <section class="sim-layout">
+      <!-- LEFT: all count systems and their mathematical variance -->
+      <aside class="counts-panel">
+        <h2>Counting systems</h2>
+        <p class="panel-note">
+          Each card tag system has a mathematical variance:
+          <code>Var(X)=E[X²]−E[X]²</code>, computed from an undealt shoe.
+        </p>
+        <div id="countCards" class="count-cards"></div>
+      </aside>
+
+      <!-- CENTER: controls, results, cartesian bankroll chart -->
+      <section class="simulator-panel">
+        <div class="control-card">
+          <h2>Run simulation</h2>
+
+          <div class="controls-grid">
+            <label>
+              Starting bankroll
+              <input id="bankrollInput" type="number" min="1" value="10000" />
+            </label>
+            <label>
+              Bet unit
+              <input id="unitInput" type="number" min="1" value="100" />
+            </label>
+            <label>
+              Shoes to simulate
+              <input id="shoesInput" type="number" min="1" max="5000" value="200" />
+            </label>
+            <label>
+              Decks
+              <select id="decksInput">
+                <option value="8" selected>8 decks</option>
+                <option value="6">6 decks</option>
+              </select>
+            </label>
+            <label>
+              Cut card from end
+              <input id="cutInput" type="number" min="6" max="104" value="14" />
+            </label>
+            <label>
+              Shuffle mode
+              <select id="shuffleInput">
+                <option value="shoe" selected>Shoe, then cut card</option>
+                <option value="csm">CSM / shuffle every hand</option>
+              </select>
+            </label>
+            <label class="seed-control">
+              Seed
+              <div class="seed-row">
+                <input id="seedInput" type="text" value="open-gambling" />
+                <label class="checkbox-label" title="When disabled, a new random seed is generated on every run">
+                  <input id="fixedSeedInput" type="checkbox" checked />
+                  Keep same seed
+                </label>
+              </div>
+            </label>
+          </div>
+
+          <div class="button-row">
+            <button id="runButton" type="button">Run simulator</button>
+            <button id="resetButton" class="secondary" type="button">Reset chart</button>
+          </div>
+        </div>
+
+        <div class="results-grid">
+          <div class="result-card"><span>Final bankroll</span><strong id="finalBankroll">—</strong></div>
+          <div class="result-card"><span>Profit / loss</span><strong id="profitLoss">—</strong></div>
+          <div class="result-card"><span>Hands played</span><strong id="handsPlayed">—</strong></div>
+          <div class="result-card"><span>Wagers made</span><strong id="wagersMade">—</strong></div>
+          <div class="result-card"><span>Observed return</span><strong id="observedReturn">—</strong></div>
+          <div class="result-card"><span>Wager variance</span><strong id="wagerVariance">—</strong></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">
+            <h2>Bankroll path</h2>
+            <span>chips over hands</span>
+          </div>
+          <canvas id="bankrollChart" width="900" height="420" aria-label="Bankroll chart"></canvas>
+        </div>
+
+        <div class="explain-card" id="explainCard">
+          Select a count on the left and run the simulator. The chart shows the bankroll after every hand.
+          Hands where the count does not trigger a bet leave the bankroll unchanged.
+        </div>
+      </section>
+
+      <!-- RIGHT: general information about the game and current configuration -->
+      <aside class="info-panel">
+        <h2>Game information</h2>
+        <dl>
+          <div><dt>Game</dt><dd>Baccarat / Punto Banco</dd></div>
+          <div><dt>Decks used</dt><dd id="infoDecks">8</dd></div>
+          <div><dt>Shuffle mode</dt><dd id="infoShuffle">Shoe</dd></div>
+          <div><dt>Cut card</dt><dd id="infoCut">14 cards from end</dd></div>
+          <div><dt>Burn card</dt><dd>Initial burn modeled</dd></div>
+          <div><dt>Banker payout</dt><dd>0.95 : 1</dd></div>
+          <div><dt>Player payout</dt><dd>1 : 1</dd></div>
+          <div><dt>Tie payout</dt><dd>8 : 1</dd></div>
+          <div><dt>Selected count</dt><dd id="infoCount">—</dd></div>
+          <div><dt>Trigger</dt><dd id="infoTrigger">—</dd></div>
+          <div><dt>Target bet</dt><dd id="infoBet">—</dd></div>
+        </dl>
+
+        <div class="warning-box">
+          <strong>Important:</strong> CSM mode resets the shoe every hand, which destroys useful count
+          information. Early cut cards also remove the late-shoe situations where advantage appears.
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <SiteFooter />
+</BaseLayout>
+
+<style>
+  .sim-page {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 110px 24px 60px;
+  }
+
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+  }
+
+  .breadcrumb a {
+    text-decoration: none;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 28px;
+  }
+
+  .page-header h1 {
+    font-size: clamp(32px, 5vw, 48px);
+    letter-spacing: -1px;
+  }
+
+  .page-header p {
+    color: var(--ink-soft);
+    max-width: 720px;
+    margin-top: 8px;
+    line-height: 1.65;
+  }
+
+  .client-badge {
+    flex-shrink: 0;
+    background: var(--accent-soft);
+    border: 1px solid rgba(45, 212, 191, 0.35);
+    color: var(--accent);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .sim-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 340px) minmax(520px, 1fr) minmax(260px, 320px);
+    gap: 22px;
+    align-items: start;
+  }
+
+  .counts-panel,
+  .simulator-panel,
+  .info-panel {
+    position: relative;
+    z-index: 1;
+  }
+
+  .counts-panel,
+  .info-panel,
+  .control-card,
+  .chart-card,
+  .explain-card,
+  .result-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .counts-panel,
+  .info-panel {
+    padding: 18px;
+    max-height: calc(100vh - 130px);
+    overflow: auto;
+    position: sticky;
+    top: 86px;
+  }
+
+  h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+
+  .panel-note {
+    color: var(--ink-soft);
+    font-size: 13px;
+    line-height: 1.55;
+    margin-bottom: 16px;
+  }
+
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 1px 5px;
+    border-radius: 6px;
+  }
+
+  .count-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Each counting system is a self-contained, non-interactive dark card.
+     Its only interactive element is the full-width action button at bottom. */
+  /* These elements are generated with document.createElement() after Astro
+     hydrates the page. They do not get Astro's scoped CSS attribute, so their
+     styles must intentionally be global. The scope stays narrow by using the
+     simulator-specific class names only. */
+  :global(.count-card) {
+    background: #151a24;
+    border: 1px solid #2a3445;
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  :global(.count-card:hover) { border-color: #3a4659; }
+  :global(.count-card.active) { border-color: #3a4659; }
+
+  :global(.count-card-title) {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--ink);
+  }
+
+  :global(.count-card p) {
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    line-height: 1.45;
+    margin: 0;
+  }
+
+  /* Use / In use button at the bottom of every card.
+     Default = black with green outline; selected = solid green. */
+  :global(.use-btn) {
+    appearance: none;
+    -webkit-appearance: none;
+    display: block;
+    width: 100%;
+    margin-top: 2px;
+    padding: 10px 12px;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    cursor: pointer;
+    background: #090c12 !important;
+    color: #4ade80 !important;
+    border: 1.5px solid #22c55e !important;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  :global(.use-btn:hover) { background: rgba(34, 197, 94, 0.14) !important; }
+
+  /* The selected system's button is the only solid-green element. */
+  :global(.count-card.active .use-btn) {
+    background: #22c55e !important;
+    color: #07100b !important;
+    border-color: #22c55e !important;
+    cursor: default;
+  }
+
+  :global(.count-card.active .use-btn:hover) { background: #22c55e !important; }
+
+  :global(.mini-tags) {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+
+  :global(.mini-tags span) {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+
+  :global(.count-meta) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: 11px;
+  }
+
+  :global(.count-meta div) {
+    background: rgba(0, 0, 0, 0.16);
+    border-radius: 8px;
+    padding: 7px;
+  }
+
+  :global(.count-meta span) {
+    display: block;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 2px;
+  }
+
+  :global(.count-meta strong) {
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .simulator-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .control-card,
+  .chart-card,
+  .explain-card {
+    padding: 18px;
+  }
+
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  label {
+    color: var(--ink-soft);
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  input,
+  select {
+    width: 100%;
+    background: #0f141e;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--ink);
+    padding: 10px 12px;
+    outline: none;
+    font-size: 14px;
+  }
+
+  input:focus,
+  select:focus {
+    border-color: var(--accent);
+  }
+
+  .seed-control {
+    grid-column: span 2;
+  }
+
+  .seed-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .checkbox-label {
+    height: 100%;
+    min-width: 150px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #0f141e;
+    color: var(--ink-soft);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .checkbox-label input {
+    width: auto;
+    accent-color: var(--accent);
+  }
+
+  .button-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  button {
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #0d1017;
+    padding: 11px 16px;
+    font-weight: 800;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  button.secondary {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--border);
+  }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .result-card {
+    padding: 14px;
+  }
+
+  .result-card span {
+    display: block;
+    color: var(--ink-soft);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .result-card strong {
+    font-size: 18px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .result-card strong.negative {
+    color: var(--danger);
+  }
+
+  .result-card strong.positive {
+    color: var(--accent);
+  }
+
+  .chart-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+
+  .chart-title span {
+    color: var(--ink-soft);
+    font-size: 12px;
+  }
+
+  canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #0b0e14;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .explain-card {
+    color: var(--ink-soft);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .info-panel dl {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .info-panel dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 8px;
+  }
+
+  .info-panel dt {
+    color: var(--ink-soft);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .info-panel dd {
+    font-size: 13px;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .warning-box {
+    margin-top: 18px;
+    padding: 14px;
+    border-left: 4px solid var(--warn);
+    border-radius: 10px;
+    background: rgba(251, 191, 36, 0.08);
+    color: var(--ink-soft);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .warning-box strong {
+    color: var(--ink);
+  }
+
+  @media (max-width: 1180px) {
+    .sim-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .counts-panel,
+    .info-panel {
+      position: relative;
+      top: auto;
+      max-height: none;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .page-header {
+      flex-direction: column;
+    }
+
+    .controls-grid,
+    .results-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .seed-control {
+      grid-column: span 1;
+    }
+
+    .seed-row {
+      grid-template-columns: 1fr;
+    }
+
+    .checkbox-label {
+      min-height: 42px;
+    }
+  }
+</style>
+
+<script is:inline>
+  // ============================================================
+  // Baccarat Count Simulator — all client-side JavaScript
+  // ============================================================
+
+  const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
+  const RANK_PROBS = [1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 4/13];
+
+  const COUNTS = [
+    {
+      id: "banker-main",
+      name: "Base game — Banker count",
+      target: "Banker",
+      triggerType: "true",
+      trigger: 25,
+      payout: "Banker 0.95:1",
+      tags: [0, +1, +1, +1, +2, -1, -2, -1, -1, 0],
+      description: "A Thorp-style count that attempts to bet Banker only when the remaining shoe is favorable. Technically possible, practically very weak.",
+      resolve: "banker"
+    },
+    {
+      id: "player-main",
+      name: "Base game — Player count",
+      target: "Player",
+      triggerType: "true",
+      trigger: 22,
+      payout: "Player 1:1",
+      tags: [0, -1, -1, -2, -2, +1, +2, +2, +1, 0],
+      description: "A companion Thorp-style count for Player. The edge appears rarely and only late in a deeply dealt shoe.",
+      resolve: "player"
+    },
+    {
+      id: "bad-beat",
+      name: "Bad Beat — natural 9 beats natural 8",
+      target: "Side bet",
+      triggerType: "true",
+      trigger: 6,
+      payout: "50:1",
+      tags: [0, +1, +1, +1, +1, +1, +1, -5, -5, +1],
+      description: "A countable side bet. A high true count means the remaining shoe is rich in 8s and 9s, which are the key ranks.",
+      resolve: "badBeat"
+    },
+    {
+      id: "tie-seven",
+      name: "UR Way Egalite — Tie on 7",
+      target: "Side bet",
+      triggerType: "running",
+      trigger: 33,
+      payout: "45:1",
+      tags: [+1, 0, 0, 0, 0, 0, -8, +2, +2, +1],
+      description: "An unbalanced count: use the running count directly. No true-count conversion is required.",
+      resolve: "tie7"
+    },
+    {
+      id: "fortune-seven",
+      name: "5 Treasures — Fortune 7",
+      target: "Side bet",
+      triggerType: "true",
+      trigger: 4,
+      payout: "40:1",
+      tags: [0, 0, 0, -1, -1, -1, -1, +2, +2, 0],
+      description: "Pays when Banker wins with a three-card total of 7. One of the classic countable Baccarat side bets.",
+      resolve: "fortune7"
+    },
+    {
+      id: "blazing-sevens",
+      name: "5 Treasures — Blazing 7's",
+      target: "Side bet",
+      triggerType: "true",
+      trigger: 4,
+      payout: "50:1 / 200:1",
+      tags: [+1, 0, -1, -1, -1, 0, -6, +2, +2, +1],
+      description: "A strong side-bet count in the 5 Treasures group. Pays for both hands ending on 7 under specific card-count conditions.",
+      resolve: "blazing7"
+    },
+    {
+      id: "cover-all",
+      name: "5 Treasures — Cover All",
+      target: "Side bet",
+      triggerType: "true",
+      trigger: 2,
+      payout: "6:1",
+      tags: [+1, 0, 0, -1, -1, -1, -2, 0, 0, +1],
+      description: "Pays if any of the 5 Treasures component bets wins. The count is weaker, but the bet can be part of a team approach.",
+      resolve: "coverAll"
+    },
+    {
+      id: "big-tiger",
+      name: "Big Tiger",
+      target: "Side bet",
+      triggerType: "true",
+      trigger: 8,
+      payout: "50:1",
+      tags: [0, 0, -1, -1, -1, -2, +1, +2, +2, 0],
+      description: "Pays when Banker wins with a three-card total of 6. Technically countable, but the off-the-top house edge is very high.",
+      resolve: "bigTiger"
+    }
+  ];
+
+  let selectedCount = COUNTS[0];
+  let lastPath = [10000];
+
+  const els = {
+    countCards: document.getElementById("countCards"),
+    bankroll: document.getElementById("bankrollInput"),
+    unit: document.getElementById("unitInput"),
+    shoes: document.getElementById("shoesInput"),
+    decks: document.getElementById("decksInput"),
+    cut: document.getElementById("cutInput"),
+    shuffle: document.getElementById("shuffleInput"),
+    seed: document.getElementById("seedInput"),
+    fixedSeed: document.getElementById("fixedSeedInput"),
+    run: document.getElementById("runButton"),
+    reset: document.getElementById("resetButton"),
+    chart: document.getElementById("bankrollChart"),
+    finalBankroll: document.getElementById("finalBankroll"),
+    profitLoss: document.getElementById("profitLoss"),
+    handsPlayed: document.getElementById("handsPlayed"),
+    wagersMade: document.getElementById("wagersMade"),
+    observedReturn: document.getElementById("observedReturn"),
+    wagerVariance: document.getElementById("wagerVariance"),
+    explain: document.getElementById("explainCard"),
+    infoDecks: document.getElementById("infoDecks"),
+    infoShuffle: document.getElementById("infoShuffle"),
+    infoCut: document.getElementById("infoCut"),
+    infoCount: document.getElementById("infoCount"),
+    infoTrigger: document.getElementById("infoTrigger"),
+    infoBet: document.getElementById("infoBet")
+  };
+
+  function tagVariance(tags) {
+    const mean = tags.reduce((sum, tag, i) => sum + tag * RANK_PROBS[i], 0);
+    const secondMoment = tags.reduce((sum, tag, i) => sum + tag * tag * RANK_PROBS[i], 0);
+    return { mean, variance: secondMoment - mean * mean };
+  }
+
+  function fmt(n, digits = 2) {
+    return Number(n).toLocaleString("en-US", { maximumFractionDigits: digits, minimumFractionDigits: digits });
+  }
+
+  function money(n) {
+    return "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  }
+
+  function renderCountCards() {
+    els.countCards.innerHTML = "";
+
+    COUNTS.forEach((count) => {
+      const stats = tagVariance(count.tags);
+      const isActive = count.id === selectedCount.id;
+
+      // Card is a semantic <div>; the clickable action lives in the <button>
+      // at the bottom so there are no nested interactive elements.
+      const card = document.createElement("div");
+      card.className = "count-card" + (isActive ? " active" : "");
+      card.innerHTML = `
+        <div class="count-card-title">${count.name}</div>
+        <p>${count.description}</p>
+        <div class="mini-tags">
+          ${count.tags.map((tag, i) => `<span>${RANKS[i]} ${tag >= 0 ? "+" : ""}${tag}</span>`).join("")}
+        </div>
+        <div class="count-meta">
+          <div><span>Trigger</span><strong>${count.triggerType === "true" ? "TC" : "RC"} ${count.trigger >= 0 ? "+" : ""}${count.trigger}</strong></div>
+          <div><span>Variance</span><strong>${fmt(stats.variance, 4)}</strong></div>
+          <div><span>Mean tag</span><strong>${fmt(stats.mean, 4)}</strong></div>
+          <div><span>Bet</span><strong>${count.target}</strong></div>
+        </div>
+        <button type="button" class="use-btn">${isActive ? "In use" : "Use"}</button>
+      `;
+
+      // Attach click only to the button, not the whole card.
+      card.querySelector(".use-btn").addEventListener("click", () => {
+        selectedCount = count;
+        renderCountCards();
+        updateInfoPanel();
+        els.explain.textContent = `${count.name}: ${count.description} Mathematical tag variance = ${fmt(stats.variance, 4)}.`;
+      });
+
+      els.countCards.appendChild(card);
+    });
+  }
+
+  function updateInfoPanel() {
+    els.infoDecks.textContent = els.decks.value;
+    els.infoShuffle.textContent = els.shuffle.value === "csm" ? "CSM / every hand" : "Shoe";
+    els.infoCut.textContent = `${els.cut.value} cards from end`;
+    els.infoCount.textContent = selectedCount.name;
+    els.infoTrigger.textContent = `${selectedCount.triggerType === "true" ? "True count" : "Running count"} ${selectedCount.trigger >= 0 ? "+" : ""}${selectedCount.trigger}`;
+    els.infoBet.textContent = `${selectedCount.target} · ${selectedCount.payout}`;
+  }
+
+  // Deterministic seeded RNG (Mulberry32). This makes runs reproducible.
+  function hashSeed(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  function mulberry32(seed) {
+    return function() {
+      let t = seed += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function createShoe(decks, rng) {
+    const shoe = [];
+    for (let d = 0; d < decks; d++) {
+      for (let rank = 0; rank < 9; rank++) {
+        for (let s = 0; s < 4; s++) shoe.push(rank);
+      }
+      // Ten-valued cards: 10, J, Q, K = 16 per deck.
+      for (let i = 0; i < 16; i++) shoe.push(9);
+    }
+
+    // Fisher-Yates shuffle.
+    for (let i = shoe.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [shoe[i], shoe[j]] = [shoe[j], shoe[i]];
+    }
+    return shoe;
+  }
+
+  function cardValue(rank) {
+    if (rank === 0) return 1;
+    if (rank >= 1 && rank <= 8) return rank + 1;
+    return 0;
+  }
+
+  function burnInitialCards(shoe) {
+    if (shoe.length === 0) return;
+    const first = shoe.pop();
+    // Common simplified model: a 10-valued burn card burns 10 extra cards.
+    const extra = first === 9 ? 10 : cardValue(first);
+    for (let i = 0; i < extra && shoe.length > 0; i++) shoe.pop();
+  }
+
+  function draw(shoe) {
+    return shoe.pop();
+  }
+
+  function handTotal(cards) {
+    return cards.reduce((sum, card) => sum + cardValue(card), 0) % 10;
+  }
+
+  function dealBaccaratHand(shoe) {
+    const player = [draw(shoe), draw(shoe)];
+    const banker = [draw(shoe), draw(shoe)];
+    const playerFirstTwo = handTotal(player);
+    const bankerFirstTwo = handTotal(banker);
+
+    let pTotal = playerFirstTwo;
+    let bTotal = bankerFirstTwo;
+
+    const natural = pTotal >= 8 || bTotal >= 8;
+    let playerThird = null;
+
+    if (!natural) {
+      if (pTotal <= 5) {
+        playerThird = draw(shoe);
+        player.push(playerThird);
+        pTotal = handTotal(player);
+      }
+
+      if (playerThird === null) {
+        if (bTotal <= 5) banker.push(draw(shoe));
+      } else {
+        const pv = cardValue(playerThird);
+        if (bTotal <= 2) banker.push(draw(shoe));
+        else if (bTotal === 3 && pv !== 8) banker.push(draw(shoe));
+        else if (bTotal === 4 && pv >= 2 && pv <= 7) banker.push(draw(shoe));
+        else if (bTotal === 5 && pv >= 4 && pv <= 7) banker.push(draw(shoe));
+        else if (bTotal === 6 && (pv === 6 || pv === 7)) banker.push(draw(shoe));
+      }
+    }
+
+    pTotal = handTotal(player);
+    bTotal = handTotal(banker);
+
+    const outcome = pTotal > bTotal ? "player" : bTotal > pTotal ? "banker" : "tie";
+    return { player, banker, pTotal, bTotal, playerFirstTwo, bankerFirstTwo, outcome };
+  }
+
+  function resolveBet(system, hand) {
+    const pCards = hand.player.length;
+    const bCards = hand.banker.length;
+
+    const fortune7 = hand.outcome === "banker" && bCards === 3 && hand.bTotal === 7;
+    const golden8 = hand.outcome === "player" && pCards === 3 && hand.pTotal === 8;
+    const heavenly9 = (pCards === 3 && hand.pTotal === 9) || (bCards === 3 && hand.bTotal === 9);
+    const blazing7 = (hand.pTotal === 7 && hand.bTotal === 7 && pCards === 3 && bCards === 3)
+      ? 200
+      : (hand.pTotal === 7 && hand.bTotal === 7 && pCards === 2 && bCards === 2)
+        ? 50
+        : 0;
+
+    switch (system.resolve) {
+      case "banker":
+        if (hand.outcome === "banker") return 0.95;
+        if (hand.outcome === "player") return -1;
+        return 0;
+      case "player":
+        if (hand.outcome === "player") return 1;
+        if (hand.outcome === "banker") return -1;
+        return 0;
+      case "badBeat":
+        return ((hand.playerFirstTwo === 9 && hand.bankerFirstTwo === 8) || (hand.bankerFirstTwo === 9 && hand.playerFirstTwo === 8)) ? 50 : -1;
+      case "tie7":
+        return (hand.outcome === "tie" && hand.pTotal === 7) ? 45 : -1;
+      case "fortune7":
+        return fortune7 ? 40 : -1;
+      case "blazing7":
+        return blazing7 || -1;
+      case "coverAll":
+        return (fortune7 || golden8 || heavenly9 || blazing7) ? 6 : -1;
+      case "bigTiger":
+        return (hand.outcome === "banker" && bCards === 3 && hand.bTotal === 6) ? 50 : -1;
+      default:
+        return 0;
+    }
+  }
+
+  function shouldBet(system, runningCount, shoeLength) {
+    if (system.triggerType === "running") return runningCount >= system.trigger;
+    const decksRemaining = Math.max(shoeLength / 52, 0.25);
+    const trueCount = runningCount / decksRemaining;
+    return trueCount >= system.trigger;
+  }
+
+  function updateRunningCount(system, hand, runningCount) {
+    for (const c of hand.player) runningCount += system.tags[c];
+    for (const c of hand.banker) runningCount += system.tags[c];
+    return runningCount;
+  }
+
+  function simulate() {
+    const startBankroll = Number(els.bankroll.value || 10000);
+    const unit = Number(els.unit.value || 100);
+    const shoesToRun = Math.max(1, Math.min(5000, Number(els.shoes.value || 1)));
+    const decks = Number(els.decks.value || 8);
+    const cutCards = Number(els.cut.value || 14);
+    const csm = els.shuffle.value === "csm";
+
+    // If "Keep same seed" is off, generate a new seed before each run
+    // and write it back to the input so the run can still be reproduced.
+    if (!els.fixedSeed.checked) {
+      const randomPart = globalThis.crypto?.randomUUID?.() ?? String(Date.now() + Math.random());
+      els.seed.value = `run-${randomPart}`;
+    }
+
+    const rng = mulberry32(hashSeed(`${els.seed.value}-${selectedCount.id}`));
+
+    let bankroll = startBankroll;
+    let hands = 0;
+    let wagers = 0;
+    let totalWagered = 0;
+    let runningCount = 0;
+    const path = [bankroll];
+    const wagerOutcomes = [];
+
+    for (let s = 0; s < shoesToRun; s++) {
+      runningCount = 0;
+
+      if (csm) {
+        // CSM mode must NOT use the shoe-depletion while loop below.
+        // In a CSM, the composition is effectively reset every hand, so the
+        // shoe length never naturally reaches the cut card. Using the normal
+        // while loop would therefore create an infinite loop.
+        const equivalentHandsPerShoe = Math.max(1, Math.floor(((decks * 52) - cutCards) / 5.2));
+
+        for (let h = 0; h < equivalentHandsPerShoe; h++) {
+          const shoe = createShoe(decks, rng);
+          burnInitialCards(shoe);
+          const hand = dealBaccaratHand(shoe);
+          hands++;
+
+          // A CSM destroys any useful card-removal information, so the
+          // count's trigger can never be relied upon here. Rather than
+          // silently placing zero bets (which looked like "nothing happens"),
+          // this mode bets flat on every hand, at the raw house edge of the
+          // selected wager — exactly what counting can no longer avoid.
+          const outcomeUnits = resolveBet(selectedCount, hand);
+          bankroll += outcomeUnits * unit;
+          totalWagered += unit;
+          wagers++;
+          wagerOutcomes.push(outcomeUnits);
+
+          path.push(bankroll);
+        }
+
+        continue;
+      }
+
+      let shoe = createShoe(decks, rng);
+      burnInitialCards(shoe);
+
+      while (shoe.length > cutCards + 6) {
+        const betNow = shouldBet(selectedCount, runningCount, shoe.length);
+        const hand = dealBaccaratHand(shoe);
+        hands++;
+
+        if (betNow) {
+          const outcomeUnits = resolveBet(selectedCount, hand);
+          bankroll += outcomeUnits * unit;
+          totalWagered += unit;
+          wagers++;
+          wagerOutcomes.push(outcomeUnits);
+        }
+
+        runningCount = updateRunningCount(selectedCount, hand, runningCount);
+        path.push(bankroll);
+      }
+    }
+
+    const profit = bankroll - startBankroll;
+    const observedReturn = totalWagered > 0 ? (profit / totalWagered) * 100 : 0;
+    const meanOutcome = wagerOutcomes.length
+      ? wagerOutcomes.reduce((a, b) => a + b, 0) / wagerOutcomes.length
+      : 0;
+    const outcomeVariance = wagerOutcomes.length
+      ? wagerOutcomes.reduce((sum, x) => sum + (x - meanOutcome) ** 2, 0) / wagerOutcomes.length
+      : 0;
+
+    lastPath = path;
+    renderChart(path, startBankroll);
+    updateResults({ bankroll, profit, hands, wagers, observedReturn, outcomeVariance });
+
+    els.explain.innerHTML = csm
+      ? `
+        <strong>${selectedCount.name}</strong> ran for ${hands.toLocaleString("en-US")} hands under a
+        <strong>CSM</strong>. Since a continuous shuffler resets the composition every hand, no count
+        can trigger reliably, so every hand was bet flat at the raw house edge. This is why the bankroll
+        drifts steadily downward: it is the pure, unavoidable house edge, with no counting protection.
+      `
+      : `
+        <strong>${selectedCount.name}</strong> ran for ${hands.toLocaleString("en-US")} hands.
+        It placed ${wagers.toLocaleString("en-US")} wagers. The observed return is simulation noise,
+        not proof of an edge. Compare many seeds and remember that rare side bets have very high variance.
+      `;
+  }
+
+  function updateResults(result) {
+    els.finalBankroll.textContent = money(result.bankroll);
+    els.profitLoss.textContent = (result.profit >= 0 ? "+" : "") + money(result.profit);
+    els.handsPlayed.textContent = result.hands.toLocaleString("en-US");
+    els.wagersMade.textContent = result.wagers.toLocaleString("en-US");
+    els.observedReturn.textContent = `${fmt(result.observedReturn, 2)}%`;
+    els.wagerVariance.textContent = fmt(result.outcomeVariance, 4);
+
+    els.profitLoss.className = result.profit >= 0 ? "positive" : "negative";
+    els.observedReturn.className = result.observedReturn >= 0 ? "positive" : "negative";
+  }
+
+  function renderChart(path, baseline) {
+    const canvas = els.chart;
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width;
+    const h = canvas.height;
+    const pad = 44;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#0b0e14";
+    ctx.fillRect(0, 0, w, h);
+
+    const minY = Math.min(...path, baseline);
+    const maxY = Math.max(...path, baseline);
+    const range = Math.max(maxY - minY, 1);
+    const yMin = minY - range * 0.08;
+    const yMax = maxY + range * 0.08;
+
+    function x(i) { return pad + (i / Math.max(path.length - 1, 1)) * (w - pad * 1.4); }
+    function y(v) { return h - pad - ((v - yMin) / (yMax - yMin)) * (h - pad * 1.6); }
+
+    // Grid lines.
+    ctx.strokeStyle = "#1c2230";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 6; i++) {
+      const yy = pad / 2 + i * ((h - pad) / 6);
+      ctx.beginPath();
+      ctx.moveTo(pad, yy);
+      ctx.lineTo(w - pad / 2, yy);
+      ctx.stroke();
+    }
+
+    // Baseline.
+    ctx.strokeStyle = "rgba(251,191,36,.75)";
+    ctx.setLineDash([8, 8]);
+    ctx.beginPath();
+    ctx.moveTo(pad, y(baseline));
+    ctx.lineTo(w - pad / 2, y(baseline));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Bankroll path.
+    ctx.strokeStyle = "#2dd4bf";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    path.forEach((v, i) => {
+      if (i === 0) ctx.moveTo(x(i), y(v));
+      else ctx.lineTo(x(i), y(v));
+    });
+    ctx.stroke();
+
+    // Axis labels.
+    ctx.fillStyle = "#8b95a5";
+    ctx.font = "12px system-ui";
+    ctx.fillText(`hands: ${path.length - 1}`, pad, h - 12);
+    ctx.fillText(`max ${money(maxY)}`, pad, 20);
+    ctx.fillText(`min ${money(minY)}`, pad, 38);
+  }
+
+  function reset() {
+    const start = Number(els.bankroll.value || 10000);
+    lastPath = [start];
+    renderChart(lastPath, start);
+    [els.finalBankroll, els.profitLoss, els.handsPlayed, els.wagersMade, els.observedReturn, els.wagerVariance]
+      .forEach((el) => { el.textContent = "—"; el.className = ""; });
+    els.explain.textContent = "Select a count on the left and run the simulator. The chart shows the bankroll after every hand.";
+  }
+
+  [els.decks, els.shuffle, els.cut].forEach((input) => input.addEventListener("input", updateInfoPanel));
+  els.run.addEventListener("click", simulate);
+  els.reset.addEventListener("click", reset);
+
+  renderCountCards();
+  updateInfoPanel();
+  reset();
+</script>

@@ -1,0 +1,113 @@
+---
+/**
+ * SiteHeader.astro — fixed top bar with logo (left) and GitHub stars (right).
+ *
+ * Behavior: on the homepage it starts hidden and slides in once the hero
+ * scrolls out of view. On inner pages pass `alwaysVisible` so the header
+ * is present from the start.
+ */
+import Logo from "./Logo.astro";
+
+interface Props {
+  alwaysVisible?: boolean;
+}
+
+const { alwaysVisible = false } = Astro.props;
+const repoUrl = "https://github.com/your-user/open-gambling";
+---
+
+<header id="site-header" class:list={[{ visible: alwaysVisible }]}>
+  <a class="header-logo" href="/">
+    <Logo size={32} />
+    <span>Open<em>Fiches</em></span>
+  </a>
+
+  <a class="github-btn" href={repoUrl} target="_blank" rel="noopener">
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+    </svg>
+    GitHub
+    <span class="stars" data-stars>★ …</span>
+  </a>
+</header>
+
+<style>
+  header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: rgba(13, 16, 23, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    transform: translateY(-100%);
+    transition: transform 0.35s ease;
+  }
+
+  header.visible {
+    transform: translateY(0);
+  }
+
+  .header-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 800;
+    font-size: 18px;
+    text-decoration: none;
+    color: var(--ink);
+  }
+
+  .header-logo span em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .github-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+    text-decoration: none;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+    transition: border-color 0.2s;
+  }
+
+  .github-btn:hover {
+    border-color: var(--accent);
+  }
+
+  .stars {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--warn);
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+
+<script>
+  // Fetch the live star count from the GitHub API; fail silently if offline
+  // or rate-limited (the "★ …" placeholder simply stays).
+  const starsEl = document.querySelector<HTMLElement>("[data-stars]");
+  const repo = "your-user/open-gambling"; // keep in sync with repoUrl above
+
+  fetch(`https://api.github.com/repos/${repo}`)
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data) => {
+      if (data?.stargazers_count != null && starsEl) {
+        starsEl.textContent = `★ ${data.stargazers_count}`;
+      }
+    })
+    .catch(() => {});
+</script>

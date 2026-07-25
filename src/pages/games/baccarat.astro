@@ -1,0 +1,675 @@
+---
+/**
+ * games/baccarat.astro — the math explanation page for Baccarat.
+ *
+ * All probabilities below assume the standard 8-deck game with a 5%
+ * commission on winning Banker bets and an 8:1 payout on Tie.
+ * The numbers are combinatorial (computed over all possible card
+ * outcomes), not simulation estimates.
+ */
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+---
+
+<BaseLayout
+  title="Baccarat — The Math"
+  description="Why the house always wins at baccarat: probabilities, expected value and house edge for Banker, Player and Tie bets, plus side bets and the best possible strategy."
+>
+  <SiteHeader alwaysVisible />
+
+  <main>
+    <!-- Breadcrumb + compact summary panel -->
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Games</a> / <span>Cards</span> / <strong>Baccarat</strong>
+    </nav>
+
+    <div class="game-header">
+      <div>
+        <h1>Baccarat</h1>
+        <p class="subtitle">
+          A game with almost no decisions — and a house edge you cannot escape.
+        </p>
+        <div class="header-tags">
+          <span class="tag">cards</span>
+          <span class="tag">8 decks</span>
+          <span class="tag">side bets</span>
+        </div>
+        <a class="sim-link" href="/games/baccarat/simulator">Open count simulator →</a>
+      </div>
+      <dl class="summary-panel">
+        <div><dt>House edge</dt><dd class="bad">1.06%</dd></div>
+        <div><dt>RTP</dt><dd>98.94%</dd></div>
+        <div><dt>Variance</dt><dd>Low</dd></div>
+        <div><dt>EV-changing strategies</dt><dd>None</dd></div>
+      </dl>
+    </div>
+
+    <div class="prose">
+      <!-- ============ HOW THE GAME WORKS ============ -->
+      <h2 id="how-it-works">How the game works</h2>
+      <p>
+        Baccarat (the casino version, <strong>Punto Banco</strong>) is unusual: as a player you make
+        exactly <strong>one decision</strong> — what to bet on — and then you watch. There are three
+        possible bets:
+      </p>
+      <ul>
+        <li><strong>Player</strong> — the Player hand wins (pays 1:1)</li>
+        <li><strong>Banker</strong> — the Banker hand wins (pays 1:1 minus a 5% commission)</li>
+        <li><strong>Tie</strong> — both hands end with the same total (usually pays 8:1)</li>
+      </ul>
+      <p>
+        Despite the names, "Player" and "Banker" are just two hands dealt on the table; neither
+        belongs to you. Two cards are dealt to each hand, and the hand closest to a total of
+        <strong>9</strong> wins. Card values: aces count 1, cards 2–9 count at face value, and 10s
+        and face cards count 0. Only the <strong>last digit</strong> of the total matters, so
+        7 + 8 = 15 counts as 5.
+      </p>
+
+      <h3>The drawing rules (third card)</h3>
+      <p>
+        Whether a third card is drawn is <strong>not a choice</strong>: it follows a fixed,
+        deterministic table (the <em>tableau</em>). This matters mathematically — since every
+        possibility is determined by the rules, the probabilities of the three outcomes can be
+        computed exactly by enumerating all card combinations:
+      </p>
+      <ul>
+        <li>If either hand totals <strong>8 or 9</strong> with the first two cards (a "natural"), both hands stand.</li>
+        <li>The <strong>Player</strong> hand draws a third card on a total of 0–5, and stands on 6–7.</li>
+        <li>The <strong>Banker</strong> hand then draws according to a table that depends on both its own total <em>and</em> the Player's third card — e.g. Banker stands on 7, draws on 0–2, and follows the tableau for 3–6.</li>
+      </ul>
+      <div class="callout key">
+        <span class="callout-title">Key point</span>
+        <p>
+          The drawing rules are slightly <strong>asymmetric in the Banker's favor</strong>: the Banker
+          acts after the Player and "knows" the Player's third card. This is why the Banker hand wins
+          more often than the Player hand — and why the casino charges a 5% commission on it.
+        </p>
+      </div>
+
+      <!-- ============ THE PROBABILITIES ============ -->
+      <h2 id="probabilities">The exact probabilities</h2>
+      <p>
+        Enumerating every possible outcome of an 8-deck shoe under the tableau gives these exact
+        probabilities for a single round:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Outcome</th><th style="text-align:right">Probability</th><th style="text-align:right">≈ 1 in</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Banker wins</td><td class="num">45.86%</td><td class="num">2.18</td></tr>
+          <tr><td>Player wins</td><td class="num">44.62%</td><td class="num">2.24</td></tr>
+          <tr><td>Tie</td><td class="num">9.52%</td><td class="num">10.5</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Note that ties are pushes for Banker and Player bets: when a Tie occurs, those bets are
+        neither won nor lost — your stake is simply returned. This detail is essential for the
+        expected value calculations below.
+      </p>
+
+      <!-- ============ EXPECTED VALUE ============ -->
+      <h2 id="expected-value">Expected value of each bet</h2>
+      <p>
+        The <strong>expected value (EV)</strong> tells you how much you win or lose <em>on average</em>
+        per unit wagered, over the long run. A negative EV means the bet loses money on average —
+        that loss rate is the <strong>house edge</strong>.
+      </p>
+
+      <h3>Banker bet</h3>
+      <p>
+        You win 0.95 units (1:1 minus 5% commission) with probability 45.86%, lose 1 unit with
+        probability 44.62%, and push on ties:
+      </p>
+      <div class="formula">
+        EV<sub>banker</sub> = (0.4586 × 0.95) − (0.4462 × 1) + (0.0952 × 0)
+        <br />= 0.4357 − 0.4462
+        <br />= <span class="result">−0.0106 → house edge ≈ 1.06%</span>
+      </div>
+
+      <h3>Player bet</h3>
+      <p>
+        No commission here, but the Player hand wins slightly less often:
+      </p>
+      <div class="formula">
+        EV<sub>player</sub> = (0.4462 × 1) − (0.4586 × 1) + (0.0952 × 0)
+        <br />= <span class="result">−0.0124 → house edge ≈ 1.24%</span>
+      </div>
+
+      <h3>Tie bet — the trap</h3>
+      <p>
+        The 8:1 payout looks generous until you compare it with the true odds (about 9.5:1 against).
+        The gap between the payout and the real probability is where the casino makes its money:
+      </p>
+      <div class="formula">
+        EV<sub>tie</sub> = (0.0952 × 8) − (0.9048 × 1)
+        <br />= 0.7612 − 0.9048
+        <br />= <span class="result">−0.1436 → house edge ≈ 14.4%</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Bet</th>
+            <th style="text-align:right">Payout</th>
+            <th style="text-align:right">House edge</th>
+            <th style="text-align:right">Avg. loss per $100 wagered</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="highlight">
+            <td>Banker</td><td class="num">0.95 : 1</td><td class="num">1.06%</td><td class="num">$1.06</td>
+          </tr>
+          <tr>
+            <td>Player</td><td class="num">1 : 1</td><td class="num">1.24%</td><td class="num">$1.24</td>
+          </tr>
+          <tr class="bad">
+            <td>Tie</td><td class="num">8 : 1</td><td class="num">14.36%</td><td class="num">$14.36</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <span class="callout-title">The Tie bet costs 13× more</span>
+        <p>
+          Per dollar wagered, the Tie bet loses on average <strong>13.5 times more</strong> than the
+          Banker bet. It is the same game, the same cards, the same shoe — only the payout structure
+          changes. This is the clearest example in the casino of how a bet's <em>price</em>, not its
+          excitement, determines its true cost.
+        </p>
+      </div>
+
+      <!-- ============ BEST STRATEGY ============ -->
+      <h2 id="best-strategy">The mathematically optimal way to play</h2>
+      <p>
+        The optimal strategy fits in one sentence:
+        <strong>bet Banker every time, always the same amount, and never touch Tie.</strong>
+      </p>
+      <p>
+        A few common questions, answered with math:
+      </p>
+      <ul>
+        <li>
+          <strong>"Should I follow the shoe patterns (streaks, roads)?"</strong> — No. Each round is
+          nearly independent of the previous ones. A streak of Banker wins does not make Player "due":
+          the conditional probabilities barely change (by hundredths of a percent) as cards leave the shoe.
+        </li>
+        <li>
+          <strong>"What about Martingale or other betting systems?"</strong> — They cannot change the EV.
+          Multiplying a −1.06% edge by a changing bet size still gives −1.06% of total action. They only
+          reshape the variance: more frequent small wins, paid for by rare catastrophic losses.
+        </li>
+        <li>
+          <strong>"Can card counting work?"</strong> — For the main Banker/Player/Tie game, only in a
+          technical, nearly useless sense. Eliot Jacobson's Advanced Advantage Play simulations show
+          that a Thorp-style Banker count may get an average edge of about <strong>0.224%</strong>
+          only once every <strong>1,798 hands</strong>, producing roughly <strong>62¢ per 100 hands</strong>
+          if the player bets $1,000 only when the count is favorable. Even computer-perfect play is
+          capped at about <strong>$1.58 per shoe</strong> when betting $1,000 on every favorable Banker
+          or Player opportunity. That is not a practical way to beat the casino.
+        </li>
+        <li>
+          <strong>"So why is the Banker bet not +EV if it wins more often?"</strong> — Because the 5%
+          commission is calibrated to flip the sign. Without commission the Banker bet would have an
+          EV of about <strong>+1.36%</strong> in the player's favor — which is exactly why the
+          commission exists. The casino priced the bet so that the better hand still loses money.
+        </li>
+      </ul>
+
+      <!-- ============ SIDE BETS ============ -->
+      <h2 id="side-bets">Side bets</h2>
+      <p>
+        Modern baccarat tables add side bets — Dragon Bonus, Panda 8, Perfect Pair, Big/Small,
+        Fortune 7, Blazing 7's, Bad Beat, UR Way Egalite and others. The first lesson is simple:
+        <strong>off the top, side bets usually carry a house edge several times higher than the main bets.</strong>
+        The second lesson is more subtle: some side bets are also much more <strong>countable</strong>
+        than the main game, because a small group of key cards can dramatically change their probability.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Bet / side bet</th>
+            <th style="text-align:right">Off-the-top house edge</th>
+            <th style="text-align:right">Countability / AP note</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="highlight"><td>Banker</td><td class="num">1.06%</td><td>Main game; cheapest standard wager</td></tr>
+          <tr><td>Player</td><td class="num">1.24%</td><td>Main game; slightly worse than Banker</td></tr>
+          <tr class="bad"><td>Tie</td><td class="num">14.36%</td><td>Main game; usually a very expensive bet</td></tr>
+          <tr><td>Bad Beat: natural 9 beats natural 8</td><td class="num">8.4585%</td><td>Advanced Advantage Play found it countable: ~10.54% average player edge when triggered</td></tr>
+          <tr><td>UR Way Egalite: Tie on 7</td><td class="num">paytable-dependent</td><td>Highly countable in Jacobson's tests: ~12.1% average edge at the trigger with a 14-card cut</td></tr>
+          <tr><td>Big Tiger</td><td class="num">15.2533%</td><td>Countable but weak: ~0.256 units won per 100 hands in the tested model</td></tr>
+          <tr><td>5 Treasures group</td><td class="num">2.97%–10.19%</td><td>Some components are vulnerable, especially Blazing 7's in the cited analysis</td></tr>
+        </tbody>
+      </table>
+      <p>
+        This creates an important distinction for Open Fiches: <strong>the base game is not realistically
+        beatable by counting</strong>, but some <strong>side bets</strong> can become player-favorable under
+        very specific rules, penetration and paytables. Those cases deserve their own pages because each
+        one needs a full EV derivation, count system and validation against exact probabilities.
+      </p>
+
+      <!-- ============ THE LONG RUN ============ -->
+      <h2 id="long-run">Why "playing perfectly" still loses</h2>
+      <p>
+        Suppose you execute the optimal strategy flawlessly — flat Banker bets, no tilt, no Tie, no
+        side bets. Your expected loss is 1.06% of everything you wager. That sounds small, but
+        expected loss <strong>compounds with volume</strong>, not with time:
+      </p>
+      <div class="formula">
+        500 hands × $25 per hand = $12,500 total wagered
+        <br />Expected loss = $12,500 × 1.06% = <span class="result">−$132.50</span>
+      </div>
+      <p>
+        In any single evening you might finish ahead — that is variance. But the more you play, the
+        more your actual result converges toward the expected value (the law of large numbers). Since
+        the EV is negative, <strong>time is the casino's ally, not yours</strong>. The 1.06% edge is
+        small enough to keep you playing and large enough to be, in the long run, nearly unbeatable.
+      </p>
+
+      <!-- ============ CAN IT BE BEATEN? ============ -->
+      <h2 id="can-baccarat-be-beaten">Can a player beat the house at Baccarat?</h2>
+      <p class="section-note">
+        Short answer: <strong>not the normal base game</strong>. It becomes possible only in narrow
+        advantage-play situations — usually when the casino uses a shoe instead of a CSM, deals deep
+        enough before the cut card, offers a vulnerable side bet, or accidentally exposes useful card
+        information. If the game uses a <strong>continuous shuffling machine (CSM)</strong>, shallow
+        penetration, early cut cards, or no countable side bets, the realistic answer is no.
+      </p>
+
+      <div class="callout key">
+        <span class="callout-title">Practical verdict</span>
+        <p>
+          A perfect player betting only Banker is still playing a −1.06% game. Ordinary baccarat card
+          counting is mathematically possible but economically useless. Real baccarat advantage play,
+          when it exists, usually comes from <strong>side bets</strong>, <strong>deep shoe penetration</strong>,
+          or <strong>known-card / exposed-card information</strong> — not from normal Banker/Player betting.
+        </p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Condition</th>
+            <th style="text-align:right">Can it beat the house?</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="bad">
+            <td>Base game, off the top</td>
+            <td class="num">No</td>
+            <td>Banker is the best bet, but still has a 1.06% house edge after commission.</td>
+          </tr>
+          <tr class="bad">
+            <td>CSM / continuous shuffle</td>
+            <td class="num">No</td>
+            <td>The shoe composition keeps resetting, so card-removal information is destroyed.</td>
+          </tr>
+          <tr class="bad">
+            <td>Shallow penetration / early cut card</td>
+            <td class="num">No, practically</td>
+            <td>The valuable count situations occur late in the shoe; cutting early removes them.</td>
+          </tr>
+          <tr>
+            <td>Main-game card counting with deep shoe</td>
+            <td class="num">Technically yes, practically no</td>
+            <td>Jacobson reports tiny and rare edges: e.g. ~0.224% on Banker about once every 1,798 hands under one Thorp-count model.</td>
+          </tr>
+          <tr class="highlight">
+            <td>Vulnerable side bet + deep shoe</td>
+            <td class="num">Sometimes yes</td>
+            <td>Some side bets have strong card-removal effects; examples include Tie on 7, Bad Beat, and parts of 5 Treasures in Advanced Advantage Play analyses.</td>
+          </tr>
+          <tr class="highlight">
+            <td>Known-card information</td>
+            <td class="num">Yes, but not normal play</td>
+            <td>Knowing one of the next six cards can create edges around 6.4%–9.1% on average; this depends on a procedural leak such as an exposed card, not normal strategy.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Ways to get an edge, one by one</h3>
+      <p>
+        In Baccarat, "winning" does not mean predicting the next hand. It means finding a situation
+        where the <strong>expected value becomes positive</strong>. Most players never see such a situation.
+        When it exists, it usually comes from one of the methods below.
+      </p>
+
+      <h3>1. Base-game card counting: Banker / Player counts</h3>
+      <p>
+        This is the direct Baccarat equivalent of blackjack card counting: keep a running count of the
+        cards that have left the shoe, estimate the decks remaining, convert to a <strong>true count</strong>,
+        and bet only when the remaining cards make Banker or Player positive EV. The problem is that
+        Baccarat is much more symmetric than blackjack, so the edge appears rarely and is tiny.
+      </p>
+      <div class="formula">
+        running count = sum of card tags seen
+        <br />true count = running count ÷ decks remaining
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th style="text-align:right">Banker count</th>
+            <th style="text-align:right">Player count</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>A</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2</td><td class="num">+1</td><td class="num">−1</td></tr>
+          <tr><td>3</td><td class="num">+1</td><td class="num">−1</td></tr>
+          <tr><td>4</td><td class="num">+1</td><td class="num">−2</td></tr>
+          <tr><td>5</td><td class="num">+2</td><td class="num">−2</td></tr>
+          <tr><td>6</td><td class="num">−1</td><td class="num">+1</td></tr>
+          <tr><td>7</td><td class="num">−2</td><td class="num">+2</td></tr>
+          <tr><td>8</td><td class="num">−1</td><td class="num">+2</td></tr>
+          <tr><td>9</td><td class="num">−1</td><td class="num">+1</td></tr>
+          <tr><td>10 / J / Q / K</td><td class="num">0</td><td class="num">0</td></tr>
+        </tbody>
+      </table>
+      <p>
+        In Jacobson's simulation of Thorp-style counts, the lowest useful trigger for Player was around
+        <strong>true count +22</strong>; for Banker, one example trigger was around <strong>true count +25</strong>.
+        Even then, the opportunity is rare and the profit is microscopic. This method is useful for
+        education, but it is not a realistic income strategy.
+      </p>
+
+      <h3>2. Computer-perfect composition-dependent play</h3>
+      <p>
+        Instead of using a simple count, a computer could theoretically track the exact remaining shoe
+        and compute whether Banker or Player is positive EV before each hand. Advanced Advantage Play
+        tested this as an upper bound: even with perfect information and $1,000 bets only when the edge
+        exists, the combined Banker + Player opportunity was capped at about <strong>$1.58 per shoe</strong>.
+      </p>
+      <div class="callout warn">
+        <span class="callout-title">Why this matters</span>
+        <p>
+          If even computer-perfect play barely makes money on the base game, no practical human count
+          can turn ordinary Banker/Player Baccarat into a serious advantage game.
+        </p>
+      </div>
+
+      <h3>3. Countable side bets</h3>
+      <p>
+        This is where Baccarat advantage play becomes more realistic. Some side bets depend heavily on
+        a small group of key ranks. If enough of those ranks remain in the shoe, the side bet can flip
+        from negative EV to positive EV. These methods are extremely paytable- and rule-dependent.
+      </p>
+
+      <h3>3A. Bad Beat: natural 9 beats natural 8</h3>
+      <p>
+        This side bet pays when a natural 9 beats a natural 8. The key cards are obvious: the player
+        wants a shoe rich in 8s and 9s. Advanced Advantage Play gives this count:
+      </p>
+      <table>
+        <thead><tr><th>Ranks</th><th style="text-align:right">Tag</th></tr></thead>
+        <tbody>
+          <tr><td>2, 3, 4, 5, 6, 7, 10, J, Q, K</td><td class="num">+1</td></tr>
+          <tr><td>8, 9</td><td class="num">−5</td></tr>
+          <tr><td>A</td><td class="num">0</td></tr>
+        </tbody>
+      </table>
+      <p>
+        The trigger in the cited simulation was <strong>true count +6</strong>. With an 8-deck shoe and
+        the cut card at 14 cards, the side bet was positive EV on about <strong>14.31%</strong> of hands,
+        with an average edge of about <strong>10.54%</strong> when triggered. This is a genuine countable
+        opportunity — but only if that exact side bet, paytable and dealing procedure are available.
+      </p>
+
+      <h3>3B. UR Way Egalite: Tie on 7</h3>
+      <p>
+        The Tie on 7 side bet pays when the final result is a tie on total 7. Advanced Advantage Play
+        tested an easy <strong>unbalanced count</strong>, meaning no true-count conversion is required:
+        the player uses the raw running count.
+      </p>
+      <table>
+        <thead><tr><th>Ranks</th><th style="text-align:right">Tag</th></tr></thead>
+        <tbody>
+          <tr><td>7</td><td class="num">−8</td></tr>
+          <tr><td>2, 3, 4, 5, 6</td><td class="num">0</td></tr>
+          <tr><td>A, 10, J, Q, K</td><td class="num">+1</td></tr>
+          <tr><td>8, 9</td><td class="num">+2</td></tr>
+        </tbody>
+      </table>
+      <p>
+        In that model, the trigger was <strong>running count +33</strong>. With the cut card at 14 cards,
+        the bet frequency was about <strong>22.0%</strong>, with an average edge of about
+        <strong>12.1%</strong>. Moving the cut card deeper into the shoe protection zone reduced the value,
+        which shows why cut-card placement is one of the main defenses against Baccarat side-bet counting.
+      </p>
+
+      <h3>3C. 5 Treasures side bets</h3>
+      <p>
+        The 5 Treasures group contains multiple side bets. The important ones from an advantage-play
+        perspective are often Fortune 7, Blazing 7's and Cover All. In the table below, count tags are
+        written in rank order: <strong>A, 2, 3, 4, 5, 6, 7, 8, 9, 10</strong>.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Side bet</th>
+            <th>Count tags</th>
+            <th style="text-align:right">Trigger</th>
+            <th style="text-align:right">Avg. edge when triggered</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Fortune 7</td><td class="num">0,0,0,−1,−1,−1,−1,+2,+2,0</td><td class="num">TC +4</td><td class="num">8.03%</td></tr>
+          <tr><td>Blazing 7's</td><td class="num">+1,0,−1,−1,−1,0,−6,+2,+2,+1</td><td class="num">TC +4</td><td class="num">10.44%</td></tr>
+          <tr><td>Cover All</td><td class="num">+1,0,0,−1,−1,−1,−2,0,0,+1</td><td class="num">TC +2</td><td class="num">3.56%</td></tr>
+        </tbody>
+      </table>
+      <p>
+        These bets can also be approached with <strong>team play</strong>: each player tracks one count,
+        and the team concentrates wagers when one count crosses its trigger. This can increase the total
+        hourly value, but it also increases variance and casino attention. Casinos may refuse service or
+        restrict play, so this belongs in the site as math and risk analysis — not as a guarantee.
+      </p>
+
+      <h3>3D. Big Tiger</h3>
+      <p>
+        Big Tiger pays when the Banker wins with a three-card total of 6. It is technically countable,
+        but the off-the-top house edge is very high: about <strong>15.2533%</strong>. Advanced Advantage
+        Play found a count with target <strong>true count +8</strong>, but the result was weak — about
+        <strong>0.256 units won per 100 hands</strong> in the tested model. It is an example of a method
+        that exists mathematically but is not very attractive in practice.
+      </p>
+
+      <h3>4. Known-card play</h3>
+      <p>
+        If the player knows the value and position of one of the next cards in the shoe, the edge can
+        become very large by Baccarat standards. Advanced Advantage Play reports average edges around
+        <strong>6.4% to 9.1%</strong> depending on the known card's position, with some specific cases
+        much higher. However, this is <strong>not normal card counting</strong>. It depends on information
+        the player should not normally have, such as an exposed card or a procedural mistake. This project
+        explains the mathematics and game-protection issue, but does not teach cheating, card marking,
+        false shuffles, collusion, or ways to obtain hidden information.
+      </p>
+
+      <h3>5. Conditions required before any method matters</h3>
+      <ul>
+        <li><strong>No CSM:</strong> continuous shuffling destroys the useful composition drift.</li>
+        <li><strong>Deep enough penetration:</strong> the shoe must be dealt far enough before reshuffling.</li>
+        <li><strong>Favorable cut-card placement:</strong> early cut cards remove the late-shoe situations where edge appears.</li>
+        <li><strong>Correct paytable:</strong> side-bet edges depend heavily on exact payouts.</li>
+        <li><strong>High table limits relative to variance:</strong> many edges are rare and volatile.</li>
+        <li><strong>Legal and rule-compliant play:</strong> casinos can still limit, back off or refuse service to advantage players.</li>
+      </ul>
+
+      <h3>Why CSMs and cut cards matter</h3>
+      <p>
+        Card counting needs the composition of the remaining shoe to drift away from the initial
+        8-deck mix. A <strong>CSM</strong> prevents that drift from becoming useful. A <strong>cut card</strong>
+        placed early does the same thing by ending the shoe before the most extreme compositions occur.
+        In the Advanced Advantage Play tests, many favorable situations appear only near the end of the
+        shoe — precisely the region casinos try to remove with conservative cutting procedures.
+      </p>
+
+      <h3>Known-card play</h3>
+      <p>
+        Advanced Advantage Play's "Baccarat: The Known Card" article shows why even one known card can
+        be powerful. If a player knows the value and position of one of the next six cards, the resulting
+        edge can be roughly <strong>6.4% to 9.1%</strong> on average depending on position, with some
+        specific situations much higher. This is not a betting system; it requires information the player
+        should not normally have, such as a procedural mistake that exposes a card. We mention it to
+        explain game protection and the math, not to promote cheating or rule-breaking.
+      </p>
+
+      <h3>Side bets are the real battleground</h3>
+      <p>
+        The strongest legitimate counting opportunities in baccarat tend to be side bets, not Banker or
+        Player. For example, Advanced Advantage Play reports that the <strong>Bad Beat</strong> natural-9-over-natural-8
+        side bet can be countable, with 14.31% of hands having an edge at the trigger and an average edge
+        of 10.54% when played. The <strong>Tie on 7</strong> side bet showed about 12.1% average edge at
+        the trigger with a 14-card cut in one unbalanced-count simulation. These numbers depend on the
+        exact paytable, cut-card placement and rules — change the conditions and the edge can disappear.
+      </p>
+
+      <!-- ============ SOURCES ============ -->
+      <h2 id="sources">Sources & methodology</h2>
+      <ul class="sources">
+        <li>Base-game probabilities and house edges: exact combinatorial analysis of the 8-deck game (see e.g. Wizard of Odds, "Baccarat — Probability Analysis").</li>
+        <li>Counting feasibility: E. O. Thorp &amp; W. E. Walden, "A Favorable Side Bet in Nevada Baccarat" (1966); P. Griffin, <em>The Theory of Blackjack</em>.</li>
+        <li><a href="https://advancedadvantageplay.com/2024/07/why-baccarat-card-counting-sucks/" target="_blank" rel="noopener">Advanced Advantage Play — Why Baccarat Card Counting Sucks</a>: practical limits of Banker/Player/Tie counting, including Thorp-count results.</li>
+        <li><a href="https://advancedadvantageplay.com/2024/07/computer-perfect-play-in-baccarat/" target="_blank" rel="noopener">Advanced Advantage Play — Computer Perfect Play in Baccarat</a>: upper bound of roughly $1.58 per shoe with $1,000 wagers under perfect information about favorable Banker/Player opportunities.</li>
+        <li><a href="https://advancedadvantageplay.com/2024/11/baccarat-the-known-card/" target="_blank" rel="noopener">Advanced Advantage Play — Baccarat: The Known Card</a>: known-card edge estimates and procedural vulnerability discussion.</li>
+        <li><a href="https://advancedadvantageplay.com/2024/07/an-unbalanced-count-to-beat-the-tie-on-7-baccarat-side-bet/" target="_blank" rel="noopener">Advanced Advantage Play — Tie on 7 side bet</a>: unbalanced count results and cut-card sensitivity.</li>
+        <li><a href="https://advancedadvantageplay.com/2024/07/card-counting-the-bad-beat-baccarat-side-bet-natural-9-beats-natural-8/" target="_blank" rel="noopener">Advanced Advantage Play — Bad Beat side bet</a>: off-the-top edge and countable trigger results.</li>
+        <li><a href="https://advancedadvantageplay.com/2024/07/team-play-against-the-5-treasures-group-of-baccarat-side-bets/" target="_blank" rel="noopener">Advanced Advantage Play — 5 Treasures side bets</a>: side-bet vulnerability and team-play analysis.</li>
+        <li>Side bet figures are indicative: exact edges depend on the paytable in use, number of decks, cut-card placement and dealing procedure. Always check the specific rules before quoting a number.</li>
+        <li>Methodology: base-game formulas on this page are deterministic (no simulation). Future simulator results should be validated against these exact values.</li>
+      </ul>
+
+      <div class="edit-link">
+        <a href="https://github.com/your-user/open-gambling">Spot an error? Fix this page on GitHub →</a>
+      </div>
+    </div>
+  </main>
+
+  <SiteFooter />
+</BaseLayout>
+
+<style>
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 110px 24px 60px;
+  }
+
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+  }
+
+  .breadcrumb a {
+    text-decoration: none;
+  }
+
+  /* Game title + compact summary panel side by side */
+  .game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 32px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .game-header h1 {
+    font-size: clamp(32px, 5vw, 44px);
+    letter-spacing: -1px;
+  }
+
+  .subtitle {
+    color: var(--ink-soft);
+    margin-top: 8px;
+    max-width: 460px;
+  }
+
+  .header-tags {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .tag {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .sim-link {
+    display: inline-flex;
+    margin-top: 18px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #0d1017;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .summary-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 220px;
+  }
+
+  .summary-panel div {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    font-size: 13px;
+  }
+
+  .summary-panel dt {
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding-top: 2px;
+  }
+
+  .summary-panel dd {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .summary-panel dd.bad {
+    color: var(--danger);
+  }
+
+  .section-note {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--warn);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+  }
+
+  .edit-link {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px dashed var(--border);
+    font-size: 14px;
+  }
+
+  .edit-link a {
+    text-decoration: none;
+  }
+</style>
