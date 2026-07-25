@@ -1,0 +1,179 @@
+---
+/**
+ * Craps simulator — entirely client-side.
+ *
+ * Models standard two-dice Craps decisions: come-out, point phase, Pass Line,
+ * Don't Pass and true-odds payouts. No server, tracking or external library.
+ */
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import SiteHeader from "../../../components/SiteHeader.astro";
+import SiteFooter from "../../../components/SiteFooter.astro";
+---
+
+<BaseLayout
+  title="Craps Simulator"
+  description="Client-side Craps simulation for Pass Line, Don't Pass, free odds, bankroll variance and house edge."
+>
+  <SiteHeader alwaysVisible />
+
+  <main class="sim-page">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Games</a> / <a href="/games/craps">Craps</a> / <strong>Simulator</strong>
+    </nav>
+
+    <header class="page-header">
+      <div>
+        <h1>Craps Simulator</h1>
+        <p>Compare low-edge Craps strategies using fair dice, finite bankrolls and reproducible random seeds.</p>
+      </div>
+      <div class="client-badge">Client-side only</div>
+    </header>
+
+    <section class="sim-layout">
+      <aside class="strategy-panel">
+        <h2>Strategies</h2>
+        <p class="panel-note">Select one structure. Odds dilute the line bet's edge; they do not make the game positive EV.</p>
+
+        <div class="strategy-card active" data-strategy="pass">
+          <h3>Pass Line</h3>
+          <p>Win on 7/11; lose on 2/3/12; then make the point before 7.</p>
+          <div class="strategy-meta"><span>House edge</span><strong>1.414%</strong></div>
+          <button type="button" class="use-btn">In use</button>
+        </div>
+        <div class="strategy-card" data-strategy="pass-odds">
+          <h3>Pass Line + odds</h3>
+          <p>Pass Line plus the selected true-odds multiple after every point.</p>
+          <div class="strategy-meta"><span>Edge</span><strong id="passOddsEdge">depends on odds</strong></div>
+          <button type="button" class="use-btn">Use</button>
+        </div>
+        <div class="strategy-card" data-strategy="dont">
+          <h3>Don't Pass</h3>
+          <p>Win on 2/3, push on 12, lose on 7/11; then 7 before the point wins.</p>
+          <div class="strategy-meta"><span>House edge</span><strong>1.364%</strong></div>
+          <button type="button" class="use-btn">Use</button>
+        </div>
+        <div class="strategy-card" data-strategy="dont-odds">
+          <h3>Don't Pass + lay odds</h3>
+          <p>Don't Pass plus true lay odds after a point. Lower blended edge, larger swings.</p>
+          <div class="strategy-meta"><span>Edge</span><strong id="dontOddsEdge">depends on odds</strong></div>
+          <button type="button" class="use-btn">Use</button>
+        </div>
+      </aside>
+
+      <section class="simulator-panel">
+        <div class="control-card">
+          <h2>Run simulation</h2>
+          <div class="controls-grid">
+            <label>Starting bankroll<input id="bankrollInput" type="number" min="1" value="10000" /></label>
+            <label>Line bet<input id="unitInput" type="number" min="1" value="100" /></label>
+            <label>Decisions to simulate<input id="decisionsInput" type="number" min="1" max="100000" value="1000" /></label>
+            <label>Odds multiple
+              <select id="oddsInput">
+                <option value="0">No odds</option>
+                <option value="1">1x odds</option>
+                <option value="2">2x odds</option>
+                <option value="345" selected>3x-4x-5x odds</option>
+                <option value="10">10x odds</option>
+              </select>
+            </label>
+            <label class="seed-control">Seed
+              <div class="seed-row">
+                <input id="seedInput" type="text" value="open-fiches-craps" />
+                <label class="checkbox-label"><input id="fixedSeedInput" type="checkbox" checked /> Keep same seed</label>
+              </div>
+            </label>
+          </div>
+          <div class="button-row"><button id="runButton" type="button">Run simulator</button><button id="resetButton" class="secondary" type="button">Reset chart</button></div>
+        </div>
+
+        <div class="results-grid">
+          <div class="result-card"><span>Final bankroll</span><strong id="finalBankroll">—</strong></div>
+          <div class="result-card"><span>Profit / loss</span><strong id="profitLoss">—</strong></div>
+          <div class="result-card"><span>Decisions</span><strong id="decisionsDone">—</strong></div>
+          <div class="result-card"><span>Dice rolls</span><strong id="rollsDone">—</strong></div>
+          <div class="result-card"><span>Observed return</span><strong id="observedReturn">—</strong></div>
+          <div class="result-card"><span>Decision variance</span><strong id="decisionVariance">—</strong></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title"><h2>Bankroll path</h2><span>chips after each decision</span></div>
+          <canvas id="bankrollChart" width="900" height="420" aria-label="Craps bankroll chart"></canvas>
+        </div>
+        <div class="explain-card" id="explainCard">Select a strategy, configure the odds and run the simulator. One decision ends at a come-out result, made point or seven-out.</div>
+      </section>
+
+      <aside class="info-panel">
+        <h2>Game information</h2>
+        <dl>
+          <div><dt>Game</dt><dd>Craps</dd></div>
+          <div><dt>Dice</dt><dd>2 fair d6</dd></div>
+          <div><dt>Selected strategy</dt><dd id="infoStrategy">Pass Line</dd></div>
+          <div><dt>Flat-bet edge</dt><dd id="infoFlatEdge">1.414%</dd></div>
+          <div><dt>Odds edge</dt><dd>0%</dd></div>
+          <div><dt>Odds rule</dt><dd id="infoOdds">3x-4x-5x</dd></div>
+          <div><dt>Point payouts</dt><dd>2:1 · 3:2 · 6:5</dd></div>
+        </dl>
+        <div class="warning-box"><strong>Important:</strong> odds are fair but not risk-free. Larger odds reduce the blended house edge per dollar wagered while increasing the loss on a seven-out.</div>
+      </aside>
+    </section>
+  </main>
+  <SiteFooter />
+</BaseLayout>
+
+<style>
+  .sim-page { max-width: 1440px; margin: 0 auto; padding: 110px 24px 60px; }
+  .breadcrumb { font-size:13px; color:var(--ink-soft); margin-bottom:28px; } .breadcrumb a { text-decoration:none; }
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:28px; }
+  .page-header h1 { font-size:clamp(32px,5vw,48px); letter-spacing:-1px; }
+  .page-header p { color:var(--ink-soft); max-width:720px; margin-top:8px; line-height:1.65; }
+  .client-badge { background:var(--accent-soft); border:1px solid rgba(45,212,191,.35); color:var(--accent); border-radius:999px; padding:8px 14px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:1px; }
+  .sim-layout { display:grid; grid-template-columns:minmax(280px,340px) minmax(520px,1fr) minmax(260px,320px); gap:22px; align-items:start; }
+  .strategy-panel,.info-panel,.control-card,.chart-card,.explain-card,.result-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); }
+  .strategy-panel,.info-panel { padding:18px; position:sticky; top:86px; max-height:calc(100vh - 130px); overflow:auto; }
+  h2 { font-size:18px; margin-bottom:10px; } .panel-note { color:var(--ink-soft); font-size:13px; line-height:1.55; margin-bottom:16px; }
+  .strategy-card { background:#151a24; border:1px solid #2a3445; border-radius:14px; padding:16px; margin-top:12px; display:flex; flex-direction:column; gap:10px; }
+  .strategy-card h3 { font-size:15px; } .strategy-card p { color:var(--ink-soft); font-size:12.5px; line-height:1.45; }
+  .strategy-meta { display:flex; justify-content:space-between; font-size:12px; border-top:1px dashed var(--border); padding-top:9px; } .strategy-meta span { color:var(--ink-soft); } .strategy-meta strong { color:var(--danger); }
+  .use-btn { appearance:none; width:100%; padding:10px; border-radius:9px; font-family:inherit; font-size:12px; font-weight:900; letter-spacing:1.6px; text-transform:uppercase; cursor:pointer; background:#090c12; color:#4ade80; border:1.5px solid #22c55e; }
+  .strategy-card.active .use-btn { background:#22c55e; color:#07100b; } .strategy-card.active { border-color:#3a4659; }
+  .simulator-panel { display:flex; flex-direction:column; gap:18px; } .control-card,.chart-card,.explain-card { padding:18px; }
+  .controls-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:16px; } label { color:var(--ink-soft); font-size:12px; display:flex; flex-direction:column; gap:6px; }
+  input,select { width:100%; background:#0f141e; border:1px solid var(--border); border-radius:10px; color:var(--ink); padding:10px 12px; outline:none; font-size:14px; } input:focus,select:focus { border-color:var(--accent); }
+  .seed-control { grid-column:span 2; } .seed-row { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; }
+  .checkbox-label { min-width:150px; height:100%; display:flex; flex-direction:row; align-items:center; justify-content:center; gap:8px; padding:0 12px; border:1px solid var(--border); border-radius:10px; background:#0f141e; cursor:pointer; user-select:none; } .checkbox-label input { width:auto; accent-color:var(--accent); }
+  .button-row { display:flex; gap:10px; margin-top:14px; } button { border:none; border-radius:10px; background:var(--accent); color:#0d1017; padding:11px 16px; font-weight:800; cursor:pointer; text-transform:uppercase; letter-spacing:1px; } button.secondary { background:transparent; color:var(--ink); border:1px solid var(--border); }
+  .results-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; } .result-card { padding:14px; } .result-card span { display:block; color:var(--ink-soft); font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; } .result-card strong { font-size:18px; font-variant-numeric:tabular-nums; } .positive { color:var(--accent); } .negative { color:var(--danger); }
+  .chart-title { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; } .chart-title span { color:var(--ink-soft); font-size:12px; } canvas { width:100%; height:auto; display:block; background:#0b0e14; border:1px solid var(--border); border-radius:12px; }
+  .explain-card { color:var(--ink-soft); font-size:14px; line-height:1.65; }
+  .info-panel dl { display:flex; flex-direction:column; gap:10px; margin-top:14px; } .info-panel dl div { display:flex; justify-content:space-between; gap:16px; border-bottom:1px dashed var(--border); padding-bottom:8px; } .info-panel dt { color:var(--ink-soft); font-size:11px; text-transform:uppercase; letter-spacing:1px; } .info-panel dd { font-size:13px; font-weight:700; text-align:right; }
+  .warning-box { margin-top:18px; padding:14px; border-left:4px solid var(--warn); border-radius:10px; background:rgba(251,191,36,.08); color:var(--ink-soft); font-size:13px; line-height:1.6; } .warning-box strong { color:var(--ink); }
+  @media(max-width:1180px){.sim-layout{grid-template-columns:1fr}.strategy-panel,.info-panel{position:relative;top:auto;max-height:none}} @media(max-width:760px){.page-header{flex-direction:column}.controls-grid,.results-grid{grid-template-columns:1fr}.seed-control{grid-column:span 1}.seed-row{grid-template-columns:1fr}.checkbox-label{min-height:42px}}
+</style>
+
+<script is:inline>
+  const strategies = {
+    pass: { name: "Pass Line", type: "pass", edge: 1.414 },
+    "pass-odds": { name: "Pass Line + odds", type: "pass", edge: 1.414 },
+    dont: { name: "Don't Pass", type: "dont", edge: 1.364 },
+    "dont-odds": { name: "Don't Pass + lay odds", type: "dont", edge: 1.364 }
+  };
+  let selected = "pass";
+  const $ = (id) => document.getElementById(id);
+  const el = { bankroll:$("bankrollInput"), unit:$("unitInput"), decisions:$("decisionsInput"), odds:$("oddsInput"), seed:$("seedInput"), fixed:$("fixedSeedInput"), chart:$("bankrollChart"), explain:$("explainCard") };
+  const fmt = (n,d=2) => Number(n).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+  const money = (n) => "$"+fmt(n);
+  function hash(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+  function rng(seed){return()=>{let t=seed+=0x6D2B79F5;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+  function roll(random){return 1+Math.floor(random()*6)+1+Math.floor(random()*6)}
+  function oddsMultiplier(point, rule){if(rule==="345") return point===4||point===10?3:point===5||point===9?4:5;return Number(rule)}
+  function oddsPayout(point, type, line){const m=oddsMultiplier(point,el.odds.value);if(!m)return 0;if(type==="pass") return point===4||point===10?line*m*2:point===5||point===9?line*m*1.5:line*m*1.2;return point===4||point===10?line*m/2:point===5||point===9?line*m*(2/3):line*m*(5/6)}
+  function simulatedDecision(random,type,line,withOdds){let rolls=0;let r=roll(random);rolls++;if(type==="pass"){if(r===7||r===11)return{units:1,rolls};if(r===2||r===3||r===12)return{units:-1,rolls}}else{if(r===2||r===3)return{units:1,rolls};if(r===12)return{units:0,rolls};if(r===7||r===11)return{units:-1,rolls}}const point=r;const odds=withOdds?oddsPayout(point,type,line):0;while(true){r=roll(random);rolls++;if(r===point)return{units:type==="pass"?1+odds/line:-1-odds/line,rolls};if(r===7)return{units:type==="pass"?-1-odds/line:1+odds/line,rolls}}}
+  function blendedEdge(type, rule){if(rule==="0")return strategies[type==="pass"?"pass":"dont"].edge;const line=1;let oddsAction=0;const points=[[4,3],[5,4],[6,5],[8,5],[9,4],[10,3]];for(const[p,ways]of points){const m=oddsMultiplier(p,rule);let wager;if(type==="pass")wager=line*m;else{const win=oddsPayout(p,"dont",line);wager=win*(p===4||p===10?2:p===5||p===9?1.5:1.2)}oddsAction+=(ways/36)*wager}const base=type==="pass"?1.414141:1.363636;return base/(1+oddsAction)}
+  function refreshInfo(){const s=strategies[selected], withOdds=selected.includes("odds"), rule=el.odds.value;const edge=withOdds?blendedEdge(s.type,rule):s.edge;$("infoStrategy").textContent=s.name;$("infoFlatEdge").textContent=s.edge.toFixed(3)+"%";$("infoOdds").textContent=rule==="345"?"3x-4x-5x":rule+"x";$("passOddsEdge").textContent=blendedEdge("pass",rule).toFixed(3)+"%";$("dontOddsEdge").textContent=blendedEdge("dont",rule).toFixed(3)+"%";return edge}
+  document.querySelectorAll(".strategy-card").forEach(card=>card.querySelector(".use-btn").addEventListener("click",()=>{selected=card.dataset.strategy;document.querySelectorAll(".strategy-card").forEach(c=>{const on=c===card;c.classList.toggle("active",on);c.querySelector(".use-btn").textContent=on?"In use":"Use"});refreshInfo()}));
+  el.odds.addEventListener("input",refreshInfo);
+  function chart(path,base){const c=el.chart,x=c.getContext("2d"),w=c.width,h=c.height,p=44;x.clearRect(0,0,w,h);x.fillStyle="#0b0e14";x.fillRect(0,0,w,h);const lo=Math.min(...path,base),hi=Math.max(...path,base),range=Math.max(hi-lo,1),min=lo-range*.08,max=hi+range*.08;const X=i=>p+i/Math.max(path.length-1,1)*(w-p*1.4),Y=v=>h-p-(v-min)/(max-min)*(h-p*1.6);x.strokeStyle="#1c2230";for(let i=0;i<=6;i++){const y=p/2+i*(h-p)/6;x.beginPath();x.moveTo(p,y);x.lineTo(w-p/2,y);x.stroke()}x.strokeStyle="rgba(251,191,36,.75)";x.setLineDash([8,8]);x.beginPath();x.moveTo(p,Y(base));x.lineTo(w-p/2,Y(base));x.stroke();x.setLineDash([]);x.strokeStyle="#2dd4bf";x.lineWidth=2;x.beginPath();path.forEach((v,i)=>i?x.lineTo(X(i),Y(v)):x.moveTo(X(i),Y(v)));x.stroke();x.fillStyle="#8b95a5";x.font="12px system-ui";x.fillText(`decisions: ${path.length-1}`,p,h-12);x.fillText(`max ${money(hi)}`,p,20);x.fillText(`min ${money(lo)}`,p,38)}
+  function reset(){const b=Number(el.bankroll.value||10000);chart([b],b);["finalBankroll","profitLoss","decisionsDone","rollsDone","observedReturn","decisionVariance"].forEach(id=>{$(id).textContent="—";$(id).className=""})}
+  $("runButton").addEventListener("click",()=>{const start=Number(el.bankroll.value||10000),line=Number(el.unit.value||100),n=Math.min(100000,Math.max(1,Number(el.decisions.value||1)));if(!el.fixed.checked)el.seed.value="run-"+(crypto.randomUUID?.()??Date.now());const random=rng(hash(el.seed.value+selected));const s=strategies[selected], withOdds=selected.includes("odds");let bank=start,rolls=0,action=0;const path=[bank],out=[];for(let i=0;i<n;i++){const d=simulatedDecision(random,s.type,line,withOdds);bank+=d.units*line;rolls+=d.rolls;action+=line+(withOdds?line*oddsMultiplier(6,el.odds.value):0);out.push(d.units);path.push(bank)}const profit=bank-start,mean=out.reduce((a,b)=>a+b,0)/out.length,variance=out.reduce((a,v)=>a+(v-mean)**2,0)/out.length;$("finalBankroll").textContent=money(bank);$("profitLoss").textContent=(profit>=0?"+":"")+money(profit);$("profitLoss").className=profit>=0?"positive":"negative";$("decisionsDone").textContent=n.toLocaleString();$("rollsDone").textContent=rolls.toLocaleString();$("observedReturn").textContent=fmt(profit/action*100)+"%";$("decisionVariance").textContent=fmt(variance,4);chart(path,start);el.explain.innerHTML=`<strong>${s.name}</strong> completed ${n.toLocaleString()} decisions and ${rolls.toLocaleString()} dice rolls. The observed return is one random path, not proof that the theoretical edge changed. Odds lower the blended cost per dollar but increase variance.`});
+  $("resetButton").addEventListener("click",reset);refreshInfo();reset();
+</script>
