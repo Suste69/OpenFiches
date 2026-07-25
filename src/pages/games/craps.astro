@@ -1,0 +1,273 @@
+---
+/**
+ * games/craps.astro — mathematical explanation of standard casino Craps.
+ *
+ * Assumptions:
+ * - Two fair six-sided dice.
+ * - Standard Pass / Don't Pass payouts.
+ * - Standard 3x-4x-5x odds table for the blended-edge example.
+ *
+ * The core calculations use exact fractions over the 36 equally likely
+ * two-dice combinations; displayed decimals are rounded for readability.
+ */
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+---
+
+<BaseLayout
+  title="Craps — The Math"
+  description="The mathematics of Craps: Pass Line, Don't Pass, free odds, exact probabilities, expected value and why betting systems do not change the house edge."
+>
+  <SiteHeader alwaysVisible />
+
+  <main>
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Games</a> / <span>Dice</span> / <strong>Craps</strong>
+    </nav>
+
+    <div class="game-header">
+      <div>
+        <h1>Craps</h1>
+        <p class="subtitle">
+          A loud, complex-looking dice game whose best bets are surprisingly transparent.
+        </p>
+        <div class="header-tags">
+          <span class="tag">dice</span>
+          <span class="tag">multi-roll</span>
+          <span class="tag">free odds</span>
+        </div>
+      </div>
+      <dl class="summary-panel">
+        <div><dt>Best standard edge</dt><dd class="bad">1.36%</dd></div>
+        <div><dt>Pass Line edge</dt><dd class="bad">1.41%</dd></div>
+        <div><dt>3-4-5x odds edge</dt><dd>~0.37%</dd></div>
+        <div><dt>True-odds bet</dt><dd>Odds only: 0%</dd></div>
+      </dl>
+    </div>
+
+    <div class="prose">
+      <h2 id="two-dice">Start with the dice</h2>
+      <p>
+        Craps uses two fair six-sided dice. There are <strong>36 equally likely ordered outcomes</strong>,
+        but totals are not equally likely: there are six ways to make 7 and only one way to make 2 or 12.
+        This uneven distribution creates the entire mathematics of the game.
+      </p>
+
+      <table>
+        <thead><tr><th>Total</th><th style="text-align:right">Ways</th><th style="text-align:right">Probability</th></tr></thead>
+        <tbody>
+          <tr><td>2 / 12</td><td class="num">1</td><td class="num">2.78%</td></tr>
+          <tr><td>3 / 11</td><td class="num">2</td><td class="num">5.56%</td></tr>
+          <tr><td>4 / 10</td><td class="num">3</td><td class="num">8.33%</td></tr>
+          <tr><td>5 / 9</td><td class="num">4</td><td class="num">11.11%</td></tr>
+          <tr><td>6 / 8</td><td class="num">5</td><td class="num">13.89%</td></tr>
+          <tr class="highlight"><td>7</td><td class="num">6</td><td class="num">16.67%</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout key">
+        <span class="callout-title">The key asymmetry</span>
+        <p>
+          Once a point is established, the 7 is more likely than any one individual point number.
+          That is why Pass Line has a house edge in the point phase, while Don't Pass has a player
+          advantage in that same phase. The casino recovers its overall edge through the come-out rules.
+        </p>
+      </div>
+
+      <h2 id="pass-line">Pass Line: rules and exact expected value</h2>
+      <p>
+        The <strong>Pass Line</strong> is made before a come-out roll. It has two stages:
+      </p>
+      <ol>
+        <li><strong>Come-out:</strong> 7 or 11 wins; 2, 3 or 12 loses; 4, 5, 6, 8, 9 or 10 becomes the point.</li>
+        <li><strong>Point phase:</strong> the bet wins if the point repeats before a 7, and loses if 7 arrives first.</li>
+      </ol>
+      <p>
+        Rolls other than the point and 7 during the point phase do not resolve the bet. They only delay
+        the next meaningful roll, so they can be ignored when calculating which of the two arrives first.
+      </p>
+
+      <h3>Making a point before a 7</h3>
+      <table>
+        <thead><tr><th>Point</th><th style="text-align:right">Ways for point</th><th style="text-align:right">Ways for 7</th><th style="text-align:right">P(point before 7)</th></tr></thead>
+        <tbody>
+          <tr><td>4 or 10</td><td class="num">3</td><td class="num">6</td><td class="num">3 / (3 + 6) = 1/3</td></tr>
+          <tr><td>5 or 9</td><td class="num">4</td><td class="num">6</td><td class="num">4 / (4 + 6) = 2/5</td></tr>
+          <tr><td>6 or 8</td><td class="num">5</td><td class="num">6</td><td class="num">5 / (5 + 6) = 5/11</td></tr>
+        </tbody>
+      </table>
+
+      <p>
+        The Pass Line pays 1:1. Its exact chance of winning combines an immediate win on 7/11 with
+        every way a point can be established and then made:
+      </p>
+      <div class="formula">
+        P(win) = P(7 or 11) + Σ P(point) × P(point before 7)
+        <br />= 8/36 + 2×(3/36 × 1/3) + 2×(4/36 × 2/5) + 2×(5/36 × 5/11)
+        <br />= <span class="result">244/495 = 49.2929%</span>
+        <br /><br />P(loss) = <span class="result">251/495 = 50.7071%</span>
+        <br />EV = (244/495 × +1) + (251/495 × −1) = <span class="result">−7/495 = −1.4141%</span>
+      </div>
+      <p>
+        Therefore the Pass Line house edge is <strong>1.41%</strong>: per $100 in Pass Line decisions,
+        the long-run expected loss is $1.41. A particular session can win or lose wildly; the 1.41% is
+        an average over many completed bets, not a prediction for one roll or one visit.
+      </p>
+
+      <h2 id="dont-pass">Don't Pass: slightly cheaper, still negative EV</h2>
+      <p>
+        Don't Pass is the mirror bet. On the come-out, 2 or 3 wins, 12 pushes, and 7 or 11 loses.
+        After a point is set, it wins if 7 arrives before that point. Its lower edge comes from the
+        push on 12 rather than a loss.
+      </p>
+      <div class="formula">
+        P(win) = 949/1980 = 47.9293%
+        <br />P(loss) = 976/1980 = 49.2929%
+        <br />P(push) = 55/1980 = 2.7778%
+        <br />EV = (949 − 976) / 1980 = <span class="result">−27/1980 = −1.3636%</span>
+      </div>
+      <p>
+        So Don't Pass is mathematically better than Pass Line by <strong>0.05 percentage points</strong>,
+        but it is still a negative-expectation wager. The difference is $0.05 per $100 wagered, on average.
+      </p>
+
+      <h2 id="odds">Free odds: the only zero-edge wager</h2>
+      <p>
+        After a point is established, a Pass Line player may add an <strong>odds bet</strong> behind the
+        line. It wins and loses with the Pass Line point phase, but pays at the true mathematical odds.
+        The casino earns nothing from this part of the action.
+      </p>
+      <table>
+        <thead><tr><th>Point</th><th style="text-align:right">Win chance before 7</th><th style="text-align:right">True odds against</th><th style="text-align:right">Odds payout</th></tr></thead>
+        <tbody>
+          <tr><td>4 / 10</td><td class="num">1/3</td><td class="num">2 : 1</td><td class="num">2 : 1</td></tr>
+          <tr><td>5 / 9</td><td class="num">2/5</td><td class="num">3 : 2</td><td class="num">3 : 2</td></tr>
+          <tr><td>6 / 8</td><td class="num">5/11</td><td class="num">6 : 5</td><td class="num">6 : 5</td></tr>
+        </tbody>
+      </table>
+      <div class="callout key">
+        <span class="callout-title">Zero edge does not mean zero risk</span>
+        <p>
+          Odds have an EV of 0%, but can be large relative to the original line bet. They reduce the
+          <em>combined edge per dollar wagered</em>, while increasing the volatility and money at risk
+          on a seven-out. A fair bet can still lose many times in a row.
+        </p>
+      </div>
+
+      <h3>Why 3x-4x-5x odds produce ~0.37%</h3>
+      <p>
+        With a $1 Pass Line bet, common 3x-4x-5x rules allow $3 odds on 4/10, $4 on 5/9, and $5 on 6/8.
+        The expected Pass Line loss remains 7/495 units. The odds component has zero expected loss,
+        while the expected total amount wagered becomes larger:
+      </p>
+      <div class="formula">
+        Expected odds action = 2×(3/36×3) + 2×(4/36×4) + 2×(5/36×5)
+        <br />= 5/18 + 8/9 + 25/18 = 25/9 ≈ 2.7778 units
+        <br />Total expected action = 1 + 25/9 = 34/9
+        <br />Combined edge = (7/495) ÷ (34/9) = <span class="result">0.3743%</span>
+      </div>
+      <p>
+        The edge did not disappear: the fixed Pass Line loss is now spread across more total action.
+        This is why “minimum line, maximum odds” is mathematically efficient <em>per dollar wagered</em>,
+        not why it guarantees a better session result.
+      </p>
+
+      <h2 id="bet-comparison">The table: good bets, bad bets and marketing traps</h2>
+      <table>
+        <thead><tr><th>Bet</th><th style="text-align:right">Typical house edge</th><th>Mathematical note</th></tr></thead>
+        <tbody>
+          <tr class="highlight"><td>Odds behind Pass/Come</td><td class="num">0%</td><td>True odds; available only alongside a base bet.</td></tr>
+          <tr class="highlight"><td>Don't Pass / Don't Come</td><td class="num">1.36%</td><td>Lowest standard base bet; 12 pushes on the come-out.</td></tr>
+          <tr class="highlight"><td>Pass Line / Come</td><td class="num">1.41%</td><td>Low-edge base bet; combined edge falls with odds.</td></tr>
+          <tr><td>Place 6 / 8</td><td class="num">1.52%</td><td>Reasonable compared with most table bets; pays 7:6.</td></tr>
+          <tr><td>Field</td><td class="num">~2.78%–5.56%</td><td>Depends on whether 12 pays 2:1 or 3:1.</td></tr>
+          <tr class="bad"><td>Any Craps</td><td class="num">11.11%</td><td>High edge despite the visible 7:1 payout.</td></tr>
+          <tr class="bad"><td>Any 7</td><td class="num">16.67%</td><td>Single-roll proposition bet; the highest common trap.</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Exact rules vary by casino, especially Field payouts and side bets. Always calculate from the
+        posted paytable, not the name printed on the felt.
+      </p>
+
+      <h2 id="strategies">Strategies: what changes and what does not</h2>
+      <h3>Pass Line + maximum odds</h3>
+      <p>
+        This is a sensible low-cost structure: small flat bet, as much true-odds action as bankroll and
+        table limits permit. It lowers the blended house edge, but does not make the game positive EV.
+      </p>
+
+      <h3>Three Point Molly</h3>
+      <p>
+        A Pass Line point plus two Come bets, each backed by odds, creates more simultaneous exposure.
+        It can keep a high fraction of action in zero-edge odds, but does <strong>not</strong> change the
+        underlying expected loss on the line/Come portions. It also increases bankroll swings because
+        multiple bets can lose together on a seven-out.
+      </p>
+
+      <h3>Martingale, pressing and regression</h3>
+      <p>
+        These systems only alter bet sizes and the shape of results. They do not alter dice probabilities,
+        payouts or the EV of an individual wager. A Martingale may produce many small winning sessions,
+        but a table limit or finite bankroll eventually exposes a large loss. Pressing can create large
+        wins during a hot roll, but it also puts more money into the same negative-edge bets.
+      </p>
+      <div class="callout warn">
+        <span class="callout-title">A strategy cannot turn −EV into +EV</span>
+        <p>
+          If every component wager has EV ≤ 0, any combination or sizing schedule also has EV ≤ 0.
+          The only exception on a standard table is the odds component itself, whose EV is exactly 0.
+          It can dilute the house edge, never reverse it.
+        </p>
+      </div>
+
+      <h2 id="best-play">Best possible standard play</h2>
+      <p>
+        If the objective is to minimize expected loss under standard rules, the choices are straightforward:
+      </p>
+      <ol>
+        <li>Choose <strong>Don't Pass</strong> (1.36%) or Pass Line (1.41%) as a base bet.</li>
+        <li>Take odds if your bankroll can tolerate the larger swings.</li>
+        <li>Avoid high-edge proposition bets and hedges such as Any Craps.</li>
+        <li>Use a fixed session limit; bankroll management controls risk, not house edge.</li>
+      </ol>
+      <p>
+        Even this “best play” remains negative in the long run because the required base bet has an edge.
+        Craps is unusually transparent: it offers fair odds, but only attached to a small unfavorable wager.
+      </p>
+
+      <h2 id="sources">Sources & methodology</h2>
+      <ul class="sources">
+        <li><a href="https://www.artofcraps.com/craps-bets/pass-line-bet/" target="_blank" rel="noopener">Art of Craps — Pass Line Bet</a>: Pass Line rules, probabilities, odds payouts and published blended-edge examples.</li>
+        <li><a href="https://news.williamhill.com/casino-guides/craps-strategy-guide/" target="_blank" rel="noopener">William Hill — Craps Strategy Guide</a>: comparison of low-edge bets, true odds and common proposition-bet edges.</li>
+        <li><a href="https://practicalwebtools.com/blog/craps-pass-line-calculator-guide-2026" target="_blank" rel="noopener">Practical Web Tools — Craps Pass Line Calculator Guide</a>: supplied as a research reference; its currently accessible article body was not available for independent numerical extraction.</li>
+        <li>All Pass Line and Don't Pass formulas here are exact two-dice combinatorics. Decimals are rounded only for display.</li>
+      </ul>
+
+      <div class="edit-link">
+        <a href="https://github.com/Suste69/OpenFiches">Spot an error? Fix this page on GitHub →</a>
+      </div>
+    </div>
+  </main>
+
+  <SiteFooter />
+</BaseLayout>
+
+<style>
+  main { max-width: 960px; margin: 0 auto; padding: 110px 24px 60px; }
+  .breadcrumb { font-size: 13px; color: var(--ink-soft); margin-bottom: 28px; }
+  .breadcrumb a { text-decoration: none; }
+  .game-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; flex-wrap: wrap; margin-bottom: 8px; }
+  .game-header h1 { font-size: clamp(32px, 5vw, 44px); letter-spacing: -1px; }
+  .subtitle { color: var(--ink-soft); margin-top: 8px; max-width: 460px; }
+  .header-tags { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .tag { background: var(--accent-soft); color: var(--accent); padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .summary-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; display: flex; flex-direction: column; gap: 8px; min-width: 220px; }
+  .summary-panel div { display: flex; justify-content: space-between; gap: 24px; font-size: 13px; }
+  .summary-panel dt { color: var(--ink-soft); text-transform: uppercase; font-size: 10px; letter-spacing: 1px; padding-top: 2px; }
+  .summary-panel dd { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .summary-panel dd.bad { color: var(--danger); }
+  .edit-link { margin-top: 40px; padding-top: 24px; border-top: 1px dashed var(--border); font-size: 14px; }
+  .edit-link a { text-decoration: none; }
+</style>
