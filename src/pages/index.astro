@@ -22,9 +22,8 @@ import Logo from "../components/Logo.astro";
   <!-- 1 · HERO: logo only, fills the first viewport -->
   <section class="hero" id="hero">
     <div class="hero-logo">
-      <Logo size={190} />
+      <Logo size={150} />
     </div>
-    <h1>Open <span>Fiches</span></h1>
     <p>
       The math that breaks the casino's illusions — verifiable formulas
       and reproducible simulations.
@@ -90,13 +89,10 @@ import Logo from "../components/Logo.astro";
     filter: drop-shadow(0 0 30px rgba(45, 212, 191, 0.15));
   }
 
-  .hero h1 {
-    font-size: clamp(34px, 6vw, 64px);
-    letter-spacing: -1px;
-  }
-
-  .hero h1 span {
-    color: var(--accent);
+  .hero-logo :global(img) {
+    display: block;
+    width: min(450px, 82vw);
+    height: auto;
   }
 
   .hero p {

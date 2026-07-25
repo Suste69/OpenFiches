@@ -1,0 +1,22 @@
+<svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">Open Fiches</title>
+  <!-- Three overlapping casino chips -->
+  <g transform="translate(80,112) rotate(-18)">
+    <circle r="46" fill="#26262B"/>
+    <circle r="46" fill="none" stroke="#F3ECDD" stroke-width="6" stroke-dasharray="6 10"/>
+    <circle r="30" fill="none" stroke="#F3ECDD" stroke-width="2"/>
+  </g>
+  <g transform="translate(96,100)">
+    <circle r="46" fill="#F3ECDD"/>
+    <circle r="46" fill="none" stroke="#26262B" stroke-width="6" stroke-dasharray="6 10"/>
+    <circle r="30" fill="none" stroke="#26262B" stroke-width="2"/>
+  </g>
+  <!-- Project green replaces the original red accent -->
+  <g transform="translate(112,88) rotate(18)">
+    <circle r="46" fill="#2dd4bf"/>
+    <circle r="46" fill="none" stroke="#F3ECDD" stroke-width="6" stroke-dasharray="6 10"/>
+    <circle r="30" fill="none" stroke="#F3ECDD" stroke-width="2"/>
+  </g>
+  <text x="220" y="90" font-family="'Trebuchet MS','Poppins',Arial,sans-serif" font-weight="800" font-size="46" fill="#F3ECDD">Open</text>
+  <text x="220" y="140" font-family="'Trebuchet MS','Poppins',Arial,sans-serif" font-weight="400" font-size="46" letter-spacing="1" fill="#2dd4bf">Fiches</text>
+</svg>

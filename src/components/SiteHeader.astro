@@ -17,9 +17,8 @@ const repoUrl = "https://github.com/Suste69/OpenFiches";
 ---
 
 <header id="site-header" class:list={[{ visible: alwaysVisible }]}>
-  <a class="header-logo" href="/">
-    <Logo size={32} />
-    <span>Open<em>Fiches</em></span>
+  <a class="header-logo" href="/" aria-label="Open Fiches home">
+    <Logo size={34} />
   </a>
 
   <a class="github-btn" href={repoUrl} target="_blank" rel="noopener">
@@ -56,16 +55,13 @@ const repoUrl = "https://github.com/Suste69/OpenFiches";
   .header-logo {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-weight: 800;
-    font-size: 18px;
     text-decoration: none;
-    color: var(--ink);
   }
 
-  .header-logo span em {
-    font-style: normal;
-    color: var(--accent);
+  .header-logo :global(img) {
+    display: block;
+    width: auto;
+    height: 34px;
   }
 
   .github-btn {

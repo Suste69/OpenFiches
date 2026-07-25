@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/open-fiches-logo.svg" alt="Open Fiches" width="420" />
+</p>
+
 # Open Fiches
 
 An open-source educational platform that exposes casino math through clear explanations, probability models, card-counting research, and reproducible client-side simulations. It is **not** an invitation to gamble.
