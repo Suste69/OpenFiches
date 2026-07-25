@@ -13,7 +13,7 @@ interface Props {
 }
 
 const { alwaysVisible = false } = Astro.props;
-const repoUrl = "https://github.com/your-user/open-gambling";
+const repoUrl = "https://github.com/Suste69/OpenFiches";
 ---
 
 <header id="site-header" class:list={[{ visible: alwaysVisible }]}>
@@ -100,7 +100,7 @@ const repoUrl = "https://github.com/your-user/open-gambling";
   // Fetch the live star count from the GitHub API; fail silently if offline
   // or rate-limited (the "★ …" placeholder simply stays).
   const starsEl = document.querySelector<HTMLElement>("[data-stars]");
-  const repo = "your-user/open-gambling"; // keep in sync with repoUrl above
+  const repo = "Suste69/OpenFiches"; // keep in sync with repoUrl above
 
   fetch(`https://api.github.com/repos/${repo}`)
     .then((r) => (r.ok ? r.json() : null))
