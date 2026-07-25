@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/open-fiches-logo.svg" alt="Open Fiches" width="420" />
+  <img src="public/open-fiches-logo.svg" alt="Open Fiches casino chips" width="160" />
 </p>
 
 # Open Fiches

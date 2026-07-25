@@ -24,6 +24,7 @@ import Logo from "../components/Logo.astro";
     <div class="hero-logo">
       <Logo size={150} />
     </div>
+    <h1>Open <span>Fiches</span></h1>
     <p>
       The math that breaks the casino's illusions — verifiable formulas
       and reproducible simulations.
@@ -91,8 +92,17 @@ import Logo from "../components/Logo.astro";
 
   .hero-logo :global(img) {
     display: block;
-    width: min(450px, 82vw);
-    height: auto;
+    width: 150px;
+    height: 150px;
+  }
+
+  .hero h1 {
+    font-size: clamp(34px, 6vw, 64px);
+    letter-spacing: -1px;
+  }
+
+  .hero h1 span {
+    color: var(--accent);
   }
 
   .hero p {

@@ -1,10 +1,10 @@
 ---
 /**
- * Open Fiches logo — three overlapping casino chips and the wordmark.
- * The artwork lives in /public so the same SVG can also be embedded in
- * the README and reused outside the Astro component tree.
+ * Open Fiches icon — three overlapping casino chips.
+ * The wordmark is rendered as normal page text so it stays crisp and can
+ * adapt to each layout. This SVG is reusable in the README and elsewhere.
  *
- * `size` controls the rendered logo height; width remains proportional.
+ * `size` controls both rendered width and height.
  */
 interface Props {
   size?: number;
@@ -16,7 +16,7 @@ const { size = 80 } = Astro.props;
 <img
   src="/open-fiches-logo.svg"
   height={size}
-  width={size * 3}
+  width={size}
   alt="Open Fiches"
   decoding="async"
 />
