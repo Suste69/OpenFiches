@@ -1,0 +1,337 @@
+---
+/**
+ * games/texas-holdem.astro — mathematical framework for No-Limit Texas Hold'em.
+ *
+ * This is intentionally not a claim that every poker room has the same rake,
+ * nor that every player has the same equity. Card-combination figures are exact;
+ * decisions and player results require stated ranges, opponents and fee rules.
+ */
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+---
+
+<BaseLayout
+  title="Texas Hold'em Poker — The Math"
+  description="The mathematics of Texas Hold'em: exact card probabilities, equity, pot odds, rake, tournament fees and why poker has no universal house edge."
+>
+  <SiteHeader alwaysVisible />
+
+  <main>
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Games</a> / <span>Cards</span> / <strong>Texas Hold'em</strong>
+    </nav>
+
+    <div class="game-header">
+      <div>
+        <h1>Texas Hold'em Poker</h1>
+        <p class="subtitle">You play against other players; the operator's price is rake or entry fees, not a universal house edge.</p>
+        <div class="header-tags">
+          <span class="tag">cards</span>
+          <span class="tag">community cards</span>
+          <span class="tag">player vs player</span>
+          <span class="tag">rake-dependent</span>
+        </div>
+      </div>
+      <dl class="summary-panel">
+        <div><dt>Universal house edge</dt><dd>N/A</dd></div>
+        <div><dt>Operator cost</dt><dd class="bad">Rake / fee</dd></div>
+        <div><dt>Variance</dt><dd>High</dd></div>
+        <div><dt>Player decisions</dt><dd class="good">Extensive</dd></div>
+      </dl>
+    </div>
+
+    <div class="prose">
+      <div class="callout key">
+        <span class="callout-title">The essential distinction</span>
+        <p>
+          Texas Hold'em is not a player-versus-casino game like baccarat. Chips are transferred among
+          players, while the room removes a published <strong>rake</strong> from eligible cash-game pots
+          or an <strong>entry fee</strong> from tournament buy-ins. An individual can be profitable only
+          by making better decisions than opponents by more than their share of those costs.
+        </p>
+      </div>
+
+      <h2 id="how-it-works">How the game works</h2>
+      <p>
+        In No-Limit Texas Hold'em, each player receives two private <strong>hole cards</strong>. Five
+        shared <strong>community cards</strong> are dealt in stages. A player can win by making every
+        opponent fold, or at showdown by making the best five-card poker hand from any five of their
+        two hole cards and the five board cards.
+      </p>
+      <ol>
+        <li><strong>Pre-flop:</strong> blinds (and sometimes antes) are posted, two hole cards are dealt, then players bet.</li>
+        <li><strong>Flop:</strong> three community cards are dealt, followed by a betting round.</li>
+        <li><strong>Turn:</strong> a fourth community card and another betting round.</li>
+        <li><strong>River:</strong> a fifth community card and the final betting round.</li>
+        <li><strong>Showdown:</strong> remaining players compare their best five-card hands; the pot is awarded.</li>
+      </ol>
+      <p>
+        Available decisions are check, bet, call, fold and raise. “No-Limit” means a legal raise can be
+        as large as the player's remaining stack, subject to the betting rules. Tied best hands
+        <strong>split the pot</strong>; if an indivisible chip remains, the room's published odd-chip rule
+        decides who receives it.
+      </p>
+
+      <h3>Scope of this page</h3>
+      <p>
+        Card probabilities below use one standard 52-card deck with no jokers. The decision examples
+        use heads-up, no-further-action all-ins so their EV is transparent. They are not a complete
+        strategy chart for a live or online table.
+      </p>
+      <div class="callout warn">
+        <span class="callout-title">No single “Texas Hold'em RTP” exists</span>
+        <p>
+          A win probability needs known cards, board, number of opponents and opponent ranges. A cash-game
+          cost needs the room's rake percentage, cap, minimum pot, no-flop-no-drop rule, fixed drops and
+          jackpot fees. A tournament calculation additionally needs its fee and payout structure. Do not
+          apply a number from this page to a room with different rules.
+        </p>
+      </div>
+
+      <h2 id="starting-hands">Exact starting-hand mathematics</h2>
+      <p>
+        Before any cards are known, an unordered two-card starting hand has the following equally likely
+        sample space:
+      </p>
+      <div class="formula">
+        Total hole-card combinations = C(52, 2) = 52 × 51 ÷ 2
+        <br />= <span class="result">1,326</span>
+      </div>
+      <table>
+        <thead><tr><th>Starting-hand category</th><th style="text-align:right">Combinations</th><th style="text-align:right">Exact probability</th><th>Derivation</th></tr></thead>
+        <tbody>
+          <tr><td>Any pocket pair</td><td class="num">78</td><td class="num">5.8824%</td><td>13 ranks × C(4, 2)</td></tr>
+          <tr><td>A specific pair, e.g. A-A</td><td class="num">6</td><td class="num">0.4525%</td><td>C(4, 2)</td></tr>
+          <tr><td>Suited, non-pair</td><td class="num">312</td><td class="num">23.5294%</td><td>4 suits × C(13, 2)</td></tr>
+          <tr><td>Offsuit, non-pair</td><td class="num">936</td><td class="num">70.5882%</td><td>C(13, 2) × 12</td></tr>
+          <tr class="highlight"><td>Total</td><td class="num">1,326</td><td class="num">100%</td><td>All mutually exclusive hole-card combinations</td></tr>
+        </tbody>
+      </table>
+      <p>
+        For A-A specifically, there are six favourable pairs of aces among 1,326 possible two-card hands:
+      </p>
+      <div class="formula">
+        P(A-A) = C(4, 2) / C(52, 2) = 6 / 1,326
+        <br />= <span class="result">0.0045249… = 0.4525%</span> (about 1 in 221)
+      </div>
+      <p>
+        These are deal probabilities, not winning probabilities. For example, A-A's chance to win changes
+        sharply with the number of opponents, their ranges, the board and whether they can fold.
+      </p>
+
+      <h2 id="seven-card-hands">Best five-card hand after seven cards</h2>
+      <p>
+        At showdown a player has access to seven cards: two hole cards plus five community cards. If those
+        seven cards are treated as a uniformly random seven-card set, there are <code>C(52, 7) = 133,784,560</code>
+        sets. The table classifies the <em>best</em> five-card hand in each set, so categories do not overlap.
+        It describes hand frequency only—not equity against an opponent.
+      </p>
+      <table>
+        <thead><tr><th>Best hand</th><th style="text-align:right">Seven-card sets</th><th style="text-align:right">Probability</th></tr></thead>
+        <tbody>
+          <tr><td>High card</td><td class="num">23,294,460</td><td class="num">17.4119%</td></tr>
+          <tr><td>One pair</td><td class="num">58,627,800</td><td class="num">43.8225%</td></tr>
+          <tr><td>Two pair</td><td class="num">31,433,400</td><td class="num">23.4955%</td></tr>
+          <tr><td>Three of a kind</td><td class="num">6,461,620</td><td class="num">4.8299%</td></tr>
+          <tr><td>Straight</td><td class="num">6,180,020</td><td class="num">4.6194%</td></tr>
+          <tr><td>Flush</td><td class="num">4,047,644</td><td class="num">3.0255%</td></tr>
+          <tr><td>Full house</td><td class="num">3,473,184</td><td class="num">2.5961%</td></tr>
+          <tr><td>Four of a kind</td><td class="num">224,848</td><td class="num">0.1681%</td></tr>
+          <tr class="highlight"><td>Straight flush, including royal flush</td><td class="num">41,584</td><td class="num">0.0311%</td></tr>
+          <tr><td><strong>Total</strong></td><td class="num"><strong>133,784,560</strong></td><td class="num"><strong>100%</strong></td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="equity-and-pot-odds">Equity, pot odds and a call's EV</h2>
+      <p>
+        <strong>Equity</strong> is a player's expected share of the final pot: a win counts as 1, a loss as
+        0 and a split as its fraction of the pot. It is conditional on the opponent range and all known
+        cards. In a no-more-betting all-in, let <code>q</code> be your equity, <code>P</code> the pot before
+        your call, <code>C</code> the call and <code>R</code> the rake charged from the final pot. The
+        incremental value of calling rather than folding is:
+      </p>
+      <div class="formula">
+        EV(call) = q × (P + C − R) − C
+        <br />Required equity = C / (P + C − R)
+      </div>
+      <p>
+        Example: the pot is $150 before your $50 call. The gross final pot is $200. Under an explicitly
+        hypothetical 5% rake capped at $10, <code>R = min(0.05 × 200, 10) = $10</code>, so the winner
+        receives $190:
+      </p>
+      <table>
+        <thead><tr><th>Equity</th><th style="text-align:right">Calculation</th><th style="text-align:right">EV of calling</th><th>Decision in this simplified spot</th></tr></thead>
+        <tbody>
+          <tr><td>25%</td><td class="num">0.25 × $190 − $50</td><td class="num">−$2.50</td><td>Fold</td></tr>
+          <tr class="highlight"><td>30%</td><td class="num">0.30 × $190 − $50</td><td class="num">+$7.00</td><td>Call</td></tr>
+        </tbody>
+      </table>
+      <div class="formula">
+        Required equity = $50 / $190 = <span class="result">26.32%</span>
+      </div>
+      <p>
+        Without rake, the threshold would be 25%. Rake therefore turns some marginally profitable calls
+        into folds. In a real hand, future betting, the possibility of making an opponent fold, implied
+        odds, reverse implied odds and range errors also matter; simple pot odds alone do not solve every
+        decision.
+      </p>
+
+      <h2 id="rake">Cash-game rake: the operator's mathematical edge</h2>
+      <p>
+        A cash-game room commonly takes a percentage of eligible pots, up to a cap. A transparent example
+        of a <em>hypothetical</em> schedule is:</n      </p>
+      <div class="formula">
+        R(P) = min(0.05 × P, $10), charged only to a contested flop pot
+      </div>
+      <p>
+        Here <code>P</code> is the gross pot and <code>R(P)</code> is the rake. This is not asserted to be
+        any particular room's schedule. Real schedules can have different percentages and caps, a minimum
+        pot before rake, no-flop-no-drop, fixed time charges, jackpot drops or separate promotional fees.
+      </p>
+      <table>
+        <thead><tr><th>Gross eligible pot</th><th style="text-align:right">Rake under this example</th><th style="text-align:right">Winner receives</th><th style="text-align:right">Effective rake</th></tr></thead>
+        <tbody>
+          <tr><td>$20</td><td class="num">$1.00</td><td class="num">$19.00</td><td class="num">5.00%</td></tr>
+          <tr><td>$100</td><td class="num">$5.00</td><td class="num">$95.00</td><td class="num">5.00%</td></tr>
+          <tr><td>$200</td><td class="num">$10.00</td><td class="num">$190.00</td><td class="num">5.00%</td></tr>
+          <tr class="highlight"><td>$500</td><td class="num">$10.00</td><td class="num">$490.00</td><td class="num">2.00%</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Before costs, poker is zero-sum across the players. After the rake is removed, the table-wide
+        expectation is negative by exactly that removal:
+      </p>
+      <div class="formula">
+        Σ EV(players in a hand) = −E[R(P) + other posted fees]
+      </div>
+      <p>
+        This equation does <strong>not</strong> allocate the same cost to every player or prove that a
+        particular player loses. A player with a sufficient skill edge can have positive EV; a player who
+        merely breaks even against opponents before costs loses after their effective rake burden.
+      </p>
+
+      <h2 id="tournaments">Tournament fees are different from per-pot rake</h2>
+      <p>
+        For a tournament advertised as <strong>$100 + $9</strong>, $100 per entry goes to the prize pool and
+        $9 is the operator fee. With <code>N</code> equally skilled entrants, the prize pool is <code>100N</code>,
+        so each entrant's expected prize before skill differences is <code>100N / N = $100</code>.
+      </p>
+      <div class="formula">
+        EV for an equal-skill entrant = expected prize − total entry
+        <br />= $100 − ($100 + $9) = <span class="result">−$9</span>
+      </div>
+      <p>
+        That is a 9% fee relative to the $100 prize-pool buy-in, or 8.26% of the $109 total entry. An
+        individual player's tournament EV can be positive only if their expected share of the prize pool
+        exceeds $109. Payout structure and survival incentives mean that chip EV is not automatically the
+        same as cash EV; tournament analysis often needs an ICM or another explicit payout model.
+      </p>
+
+      <h2 id="strategy">Strategy: what the mathematics supports</h2>
+      <p>
+        Unlike a fixed-rule casino game, Hold'em has no short universal strategy that is correct without
+        position, stack depth, prior action, table size, opponent ranges and rake. Mathematics supports
+        comparing specific actions under stated assumptions.
+      </p>
+      <table>
+        <thead><tr><th>Concept</th><th>What it measures</th><th>What it does not guarantee</th></tr></thead>
+        <tbody>
+          <tr><td>Position</td><td>How much information is available before acting</td><td>That every late-position hand is profitable</td></tr>
+          <tr><td>Range vs range equity</td><td>Expected share of a pot given specified hand distributions</td><td>Exact equity if the ranges are wrong</td></tr>
+          <tr><td>Pot odds</td><td>Minimum equity in a static no-more-action pot</td><td>Future betting, fold equity or rake-free profitability</td></tr>
+          <tr><td>Fold equity</td><td>Value created when an opponent folds to a bet or raise</td><td>That a bluff works often enough without a range model</td></tr>
+          <tr><td>Bankroll management</td><td>Risk of ruin and size of swings</td><td>Positive EV from losing decisions</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn">
+        <span class="callout-title">No progression beats rake</span>
+        <p>
+          Increasing a stake after losses can change variance and risk of ruin, but it cannot repair a
+          negative decision. If a sequence of decisions has expected values <code>EV₁, EV₂, …, EVₙ</code>,
+          then the expected total is <code>Σ EVᵢ</code>; changing the order or using a Martingale does not
+          make the rake disappear.
+        </p>
+      </div>
+
+      <h2 id="side-bets">Side bets, insurance and promotions</h2>
+      <p>
+        Standard Texas Hold'em has no universal casino side bet. Some rooms offer jackpot drops, bomb pots,
+        insurance, time charges or local promotional awards. They are separate products: their rules,
+        qualification conditions, fees and payouts must be published before an EV can be calculated.
+      </p>
+      <p>
+        A “bonus” cannot be labelled good value from its name alone. For any optional wager with outcomes
+        <code>i</code>, probabilities <code>pᵢ</code> and net payouts <code>xᵢ</code>, its value is:</n      </p>
+      <div class="formula">
+        EV(optional wager) = Σ(p<sub>i</sub> × x<sub>i</sub>)
+      </div>
+      <p>
+        Do not use an ante-bonus or insurance percentage from another venue: a changed qualifying hand,
+        payout or fee changes the EV. This page intentionally does not invent a generic side-bet house edge.
+      </p>
+
+      <h2 id="methodology">Methodology and limits</h2>
+      <ul>
+        <li>Starting-hand figures are exact combinations from <code>C(52, 2)</code>.</li>
+        <li>Seven-card hand frequencies are exact counts from <code>C(52, 7)</code>; they are not opponent equity.</li>
+        <li>The pot-odds calculation is exact for its stated, no-further-action example and stated hypothetical rake.</li>
+        <li>No Monte Carlo or GTO simulation is claimed on this page. A useful simulator would need disclosed ranges, betting policy, fee schedule, seed and validation target.</li>
+        <li>Cash-game and tournament results are model-dependent. Always check the room's current written rules and fee schedule.</li>
+      </ul>
+
+      <h2 id="sources">Sources &amp; methodology</h2>
+      <ul class="sources">
+        <li><a href="https://www.wsop.com/poker-games/texas-holdem/" target="_blank" rel="noopener">World Series of Poker — Texas Hold'em</a>: game sequence and hand-ranking reference.</li>
+        <li><a href="https://www.pokerstars.com/poker/learn/how-to-play/texas-holdem-rules/" target="_blank" rel="noopener">PokerStars Learn — How to play Texas Hold'em</a>: rules and betting-round reference.</li>
+        <li><a href="https://en.wikipedia.org/wiki/Poker_probability" target="_blank" rel="noopener">Poker probability</a>: independent reference for seven-card hand-category frequencies; counts on this page are shown explicitly.</li>
+        <li>Rake and tournament examples on this page are illustrative formulas, not a claim about a particular poker room. The primary source for an actual calculation must be that room's published rake or fee schedule.</li>
+      </ul>
+
+      <div class="edit-link">
+        <p>Spot an error or want to improve this analysis? <a href="https://github.com/Suste69/OpenFiches">Open an issue or contribute on GitHub →</a></p>
+        <a href="https://github.com/Suste69/OpenFiches/edit/main/src/pages/games/texas-holdem.astro">Edit this page on GitHub →</a>
+      </div>
+    </div>
+  </main>
+
+  <SiteFooter />
+</BaseLayout>
+
+<style>
+  main { max-width: 960px; margin: 0 auto; padding: 110px 24px 60px; }
+  .breadcrumb { color: var(--ink-soft); font-size: 13px; margin-bottom: 28px; }
+  .breadcrumb a { color: var(--accent); text-decoration: none; }
+  .game-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; flex-wrap: wrap; margin-bottom: 46px; }
+  .game-header h1 { font-size: clamp(32px, 5vw, 44px); letter-spacing: -1px; }
+  .subtitle { color: var(--ink-soft); margin-top: 8px; max-width: 580px; }
+  .header-tags { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .tag { background: var(--accent-soft); color: var(--accent); padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .summary-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; display: flex; flex-direction: column; gap: 8px; min-width: 230px; }
+  .summary-panel div { display: flex; justify-content: space-between; gap: 24px; font-size: 13px; }
+  .summary-panel dt { color: var(--ink-soft); text-transform: uppercase; font-size: 10px; letter-spacing: 1px; padding-top: 2px; }
+  .summary-panel dd { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .summary-panel dd.bad { color: var(--danger); }
+  .summary-panel dd.good { color: #4ade80; }
+  .prose { max-width: 820px; }
+  .prose h2 { margin-top: 48px; margin-bottom: 16px; font-size: 26px; }
+  .prose h3 { margin-top: 30px; margin-bottom: 12px; font-size: 19px; }
+  .prose p, .prose li { color: var(--ink-soft); line-height: 1.7; }
+  .prose strong { color: var(--ink); }
+  .prose ol, .prose ul { padding-left: 22px; }
+  .prose table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+  .prose th, .prose td { border-bottom: 1px solid var(--border); padding: 11px 10px; text-align: left; vertical-align: top; }
+  .prose th { color: var(--ink-soft); font-size: 11px; letter-spacing: .7px; text-transform: uppercase; }
+  .prose td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .prose tr.highlight { background: rgba(45, 212, 191, .07); }
+  .formula { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin: 18px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; color: var(--ink-soft); line-height: 1.75; overflow-x: auto; }
+  .formula .result { color: var(--accent); font-weight: 700; }
+  .callout { border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: var(--radius); padding: 16px 20px; margin: 22px 0; background: var(--card); }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout-title { color: var(--ink); display: block; font-size: 13px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; margin-bottom: 5px; }
+  .callout p { margin: 0; }
+  .sources { font-size: 14px; }
+  .sources a, .edit-link a { color: var(--accent); }
+  .edit-link { margin-top: 40px; padding-top: 24px; border-top: 1px dashed var(--border); font-size: 14px; }
+  @media (max-width: 620px) { .summary-panel { width: 100%; } .prose table { font-size: 12px; } .prose th, .prose td { padding: 9px 6px; } }
+</style>
