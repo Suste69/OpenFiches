@@ -1,0 +1,245 @@
+---
+/**
+ * Slot-machine simulator — entirely client-side and deliberately transparent.
+ *
+ * This is NOT a model of any commercial title. It uses five independent
+ * 20-stop virtual reels and a published five-of-a-kind paytable so that each
+ * displayed theoretical RTP can be reproduced by enumeration.
+ */
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import SiteHeader from "../../../components/SiteHeader.astro";
+import SiteFooter from "../../../components/SiteFooter.astro";
+---
+
+<BaseLayout
+  title="Slot Machine Simulator"
+  description="A reproducible client-side slot simulator with weighted virtual reels, a fully disclosed paytable, RTP validation and an optional side bet."
+>
+  <SiteHeader alwaysVisible />
+
+  <main class="sim-page">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Games</a> / <a href="/games/slot-machines">Slot Machines</a> / <strong>Simulator</strong>
+    </nav>
+
+    <header class="page-header">
+      <div>
+        <h1>Slot Machine Simulator</h1>
+        <p>Run a transparent five-reel model with weighted virtual stops. Every spin uses a seeded RNG; the theoretical RTP is calculated directly from the same reel weights and paytable used by the simulation.</p>
+      </div>
+      <div class="client-badge">Client-side only</div>
+    </header>
+
+    <div class="callout key">
+      <span class="callout-title">An educational model, not a commercial game</span>
+      <p>This simulator has a deliberately disclosed, jackpot-heavy paytable. It cannot identify or verify the RTP of a real slot title, whose reel mapping and feature rules may be proprietary.</p>
+    </div>
+
+    <section class="sim-layout">
+      <aside class="model-panel">
+        <h2>Published model</h2>
+        <p class="panel-note">Each of five independent reels has 20 virtual stops. A base-game award occurs only when the same symbol lands on all five reels.</p>
+        <table class="paytable">
+          <thead><tr><th>Symbol</th><th>Stops / reel</th><th>5-kind return</th></tr></thead>
+          <tbody>
+            <tr><td>🍒 Cherry</td><td>9</td><td id="cherryPayout">—</td></tr>
+            <tr><td>⭐ Star</td><td>5</td><td>140×</td></tr>
+            <tr><td>🔔 Bell</td><td>3</td><td>450×</td></tr>
+            <tr><td>💎 Diamond</td><td>2</td><td>1,500×</td></tr>
+            <tr><td>🎰 Jackpot</td><td>1</td><td>10,000×</td></tr>
+          </tbody>
+        </table>
+        <p class="small-note">“Return” includes the stake. All other outcomes return 0. The cherry return is calibrated to the chosen RTP target; it is shown to full calculation precision.</p>
+
+        <h3>Optional add-on</h3>
+        <p class="panel-note">The optional 1-unit side bet pays a <strong>net +5</strong> only when the first three reels are jackpot symbols. Its probability is (1/20)³ = 1/8,000.</p>
+        <div class="side-edge"><span>Side-bet house edge</span><strong>99.925%</strong></div>
+      </aside>
+
+      <section class="simulator-panel">
+        <div class="control-card">
+          <h2>Run simulation</h2>
+          <div class="controls-grid">
+            <label>Starting bankroll<input id="bankrollInput" type="number" min="1" value="10000" /></label>
+            <label>Base stake per spin<input id="stakeInput" type="number" min="0.01" step="0.01" value="1" /></label>
+            <label>Spins to simulate<input id="spinsInput" type="number" min="1" max="1000000" value="100000" /></label>
+            <label>RTP target
+              <select id="rtpInput">
+                <option value="0.92">92%</option>
+                <option value="0.94">94%</option>
+                <option value="0.96" selected>96%</option>
+                <option value="0.98">98%</option>
+              </select>
+            </label>
+            <label class="check-control">Optional side bet
+              <span class="check-row"><input id="sideBetInput" type="checkbox" /><span>Wager one extra base stake per spin</span></span>
+            </label>
+            <label class="seed-control">Seed
+              <div class="seed-row">
+                <input id="seedInput" type="text" value="open-fiches-slots" />
+                <label class="checkbox-label"><input id="fixedSeedInput" type="checkbox" checked /> Keep same seed</label>
+              </div>
+            </label>
+          </div>
+          <div class="button-row"><button id="runButton" type="button">Run simulator</button><button id="resetButton" class="secondary" type="button">Reset chart</button></div>
+        </div>
+
+        <div class="results-grid">
+          <div class="result-card"><span>Final bankroll</span><strong id="finalBankroll">—</strong></div>
+          <div class="result-card"><span>Profit / loss</span><strong id="profitLoss">—</strong></div>
+          <div class="result-card"><span>Observed RTP</span><strong id="observedRtp">—</strong></div>
+          <div class="result-card"><span>Theoretical RTP</span><strong id="theoreticalRtp">—</strong></div>
+          <div class="result-card"><span>Total wagered</span><strong id="totalWagered">—</strong></div>
+          <div class="result-card"><span>Jackpots</span><strong id="jackpots">—</strong></div>
+          <div class="result-card"><span>Any base win</span><strong id="baseWins">—</strong></div>
+          <div class="result-card"><span>Side-bet wins</span><strong id="sideWins">—</strong></div>
+        </div>
+
+        <div class="reels-card">
+          <div class="chart-title"><h2>Last simulated spin</h2><span id="spinSummary">Run the model to see a result.</span></div>
+          <div class="reels" id="reels" aria-live="polite">
+            <div class="reel">?</div><div class="reel">?</div><div class="reel">?</div><div class="reel">?</div><div class="reel">?</div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title"><h2>Bankroll path</h2><span>sampled across simulated spins</span></div>
+          <canvas id="bankrollChart" width="900" height="420" aria-label="Slot simulator bankroll chart"></canvas>
+        </div>
+        <div class="explain-card" id="explainCard">Pick a target RTP and run the simulation. With the same seed and settings, the result will be exactly reproducible.</div>
+      </section>
+
+      <aside class="info-panel">
+        <h2>Math check</h2>
+        <dl>
+          <div><dt>Reels</dt><dd>5 independent</dd></div>
+          <div><dt>Stops / reel</dt><dd>20 weighted</dd></div>
+          <div><dt>Jackpot probability</dt><dd>1 / 3,200,000</dd></div>
+          <div><dt>Any 5-kind probability</dt><dd id="hitFrequency">—</dd></div>
+          <div><dt>Base-game EV</dt><dd id="baseEv">—</dd></div>
+          <div><dt>Side-bet EV</dt><dd id="sideEv">−0.99925</dd></div>
+          <div><dt>Combined EV / spin</dt><dd id="combinedEv">—</dd></div>
+        </dl>
+        <div class="warning-box"><strong>Variance warning:</strong> this model intentionally concentrates most of its return in rare five-of-a-kind results. A finite run—even one million spins—can remain far from the theoretical RTP, especially if a jackpot appears or fails to appear.</div>
+      </aside>
+    </section>
+  </main>
+  <SiteFooter />
+</BaseLayout>
+
+<style>
+  .sim-page { max-width:1440px; margin:0 auto; padding:110px 24px 60px; }
+  .breadcrumb { font-size:13px; color:var(--ink-soft); margin-bottom:28px; } .breadcrumb a { text-decoration:none; }
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:22px; }
+  .page-header h1 { font-size:clamp(32px,5vw,48px); letter-spacing:-1px; } .page-header p { color:var(--ink-soft); max-width:760px; margin-top:8px; line-height:1.65; }
+  .client-badge { background:var(--accent-soft); border:1px solid rgba(45,212,191,.35); color:var(--accent); border-radius:999px; padding:8px 14px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:1px; white-space:nowrap; }
+  .callout { max-width:960px; margin-bottom:24px; } .sim-layout { display:grid; grid-template-columns:minmax(260px,320px) minmax(520px,1fr) minmax(250px,305px); gap:22px; align-items:start; }
+  .model-panel,.info-panel,.control-card,.reels-card,.chart-card,.explain-card,.result-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); }
+  .model-panel,.info-panel { padding:18px; position:sticky; top:86px; max-height:calc(100vh - 130px); overflow:auto; }
+  h2 { font-size:18px; margin-bottom:10px; } h3 { font-size:14px; margin:20px 0 8px; } .panel-note,.small-note { color:var(--ink-soft); font-size:12.5px; line-height:1.55; }.small-note{margin-top:10px;font-size:11.5px;}
+  .paytable { width:100%; border-collapse:collapse; font-size:12px; } .paytable th { color:var(--ink-soft); text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.7px; padding:8px 3px; } .paytable td { border-top:1px dashed var(--border); padding:9px 3px; } .paytable td:nth-child(2),.paytable td:last-child{text-align:right;font-variant-numeric:tabular-nums;}
+  .side-edge { display:flex; justify-content:space-between; gap:12px; padding:11px 0 2px; border-top:1px dashed var(--border); font-size:12px; }.side-edge span{color:var(--ink-soft);}.side-edge strong{color:var(--danger);}
+  .simulator-panel { display:flex; flex-direction:column; gap:18px; }.control-card,.reels-card,.chart-card,.explain-card { padding:18px; }.controls-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:16px; }
+  label { color:var(--ink-soft); font-size:12px; display:flex; flex-direction:column; gap:6px; } input,select { width:100%; box-sizing:border-box; background:#0f141e; border:1px solid var(--border); border-radius:10px; color:var(--ink); padding:10px 12px; outline:none; font-size:14px; } input:focus,select:focus { border-color:var(--accent); }
+  .check-control { justify-content:flex-end; }.check-row { min-height:42px; box-sizing:border-box; display:flex; align-items:center; gap:9px; padding:0 12px; border:1px solid var(--border); border-radius:10px; background:#0f141e; color:var(--ink); cursor:pointer; }.check-row input,.checkbox-label input { width:auto; accent-color:var(--accent); }.seed-control { grid-column:span 2; }.seed-row { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; }.checkbox-label { min-width:150px; height:100%; box-sizing:border-box; display:flex; flex-direction:row; align-items:center; justify-content:center; gap:8px; padding:0 12px; border:1px solid var(--border); border-radius:10px; background:#0f141e; cursor:pointer; user-select:none; }
+  .button-row { display:flex; gap:10px; margin-top:14px; } button { border:none; border-radius:10px; background:var(--accent); color:#0d1017; padding:11px 16px; font-weight:800; cursor:pointer; text-transform:uppercase; letter-spacing:1px; } button.secondary { background:transparent; color:var(--ink); border:1px solid var(--border); }
+  .results-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }.result-card { padding:14px; }.result-card span { display:block; color:var(--ink-soft); font-size:10px; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }.result-card strong { font-size:17px; font-variant-numeric:tabular-nums; }.positive { color:var(--accent); }.negative { color:var(--danger); }
+  .chart-title { display:flex; justify-content:space-between; gap:12px; align-items:baseline; margin-bottom:10px; }.chart-title span { color:var(--ink-soft); font-size:12px; text-align:right; }.reels { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }.reel { min-height:92px; display:flex; align-items:center; justify-content:center; font-size:44px; background:#0b0e14; border:1px solid var(--border); border-radius:12px; }.reel.winner { border-color:var(--accent); box-shadow:0 0 18px rgba(45,212,191,.18); }
+  canvas { width:100%; height:auto; display:block; background:#0b0e14; border:1px solid var(--border); border-radius:12px; }.explain-card { color:var(--ink-soft); font-size:14px; line-height:1.65; }
+  .info-panel dl { display:flex; flex-direction:column; gap:10px; margin-top:14px; }.info-panel dl div { display:flex; justify-content:space-between; gap:14px; border-bottom:1px dashed var(--border); padding-bottom:8px; }.info-panel dt { color:var(--ink-soft); font-size:10px; text-transform:uppercase; letter-spacing:1px; }.info-panel dd { font-size:12.5px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums; }.warning-box { margin-top:18px; padding:14px; border-left:4px solid var(--warn); border-radius:10px; background:rgba(251,191,36,.08); color:var(--ink-soft); font-size:13px; line-height:1.6; }.warning-box strong { color:var(--ink); }
+  @media(max-width:1180px){.sim-layout{grid-template-columns:1fr}.model-panel,.info-panel{position:relative;top:auto;max-height:none}} @media(max-width:760px){.page-header{flex-direction:column}.controls-grid,.results-grid{grid-template-columns:1fr}.seed-control{grid-column:span 1}.seed-row{grid-template-columns:1fr}.checkbox-label{min-height:42px}.reel{min-height:58px;font-size:30px}}
+</style>
+
+<script is:inline>
+  // Symbols are ordered from most common to rarest. Each reel has exactly 20 stops.
+  const SYMBOLS = [
+    { icon: "🍒", name: "Cherry", weight: 9, returnMultiplier: 0 },
+    { icon: "⭐", name: "Star", weight: 5, returnMultiplier: 140 },
+    { icon: "🔔", name: "Bell", weight: 3, returnMultiplier: 450 },
+    { icon: "💎", name: "Diamond", weight: 2, returnMultiplier: 1500 },
+    { icon: "🎰", name: "Jackpot", weight: 1, returnMultiplier: 10000 }
+  ];
+  const TOTAL_STOPS = 20;
+  const SIDE_WIN_PROBABILITY = 1 / 8000;
+  const SIDE_NET_WIN = 5;
+  const SIDE_EV = SIDE_WIN_PROBABILITY * SIDE_NET_WIN + (1 - SIDE_WIN_PROBABILITY) * -1;
+  const $ = (id) => document.getElementById(id);
+  const el = { bankroll: $("bankrollInput"), stake: $("stakeInput"), spins: $("spinsInput"), rtp: $("rtpInput"), side: $("sideBetInput"), seed: $("seedInput"), fixed: $("fixedSeedInput"), chart: $("bankrollChart"), reels: $("reels"), summary: $("spinSummary"), explain: $("explainCard") };
+  const fmt = (number, digits = 2) => Number(number).toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  const money = (number) => "$" + fmt(number);
+  function hash(text) { let value = 2166136261; for (let index = 0; index < text.length; index++) { value ^= text.charCodeAt(index); value = Math.imul(value, 16777619); } return value >>> 0; }
+  function mulberry32(seed) { return () => { let value = seed += 0x6D2B79F5; value = Math.imul(value ^ value >>> 15, value | 1); value ^= value + Math.imul(value ^ value >>> 7, value | 61); return ((value ^ value >>> 14) >>> 0) / 4294967296; }; }
+  function probability(symbol) { return (symbol.weight / TOTAL_STOPS) ** 5; }
+  function fixedRtpContribution() { return SYMBOLS.slice(1).reduce((total, symbol) => total + probability(symbol) * symbol.returnMultiplier, 0); }
+  function cherryMultiplier(targetRtp) { return (targetRtp - fixedRtpContribution()) / probability(SYMBOLS[0]); }
+  function model(targetRtp) {
+    const cherry = cherryMultiplier(targetRtp);
+    const payout = SYMBOLS.map((symbol, index) => index === 0 ? cherry : symbol.returnMultiplier);
+    const calculatedRtp = SYMBOLS.reduce((total, symbol, index) => total + probability(symbol) * payout[index], 0);
+    const hitRate = SYMBOLS.reduce((total, symbol) => total + probability(symbol), 0);
+    return { payout, calculatedRtp, hitRate };
+  }
+  function drawSymbol(random) { const stop = Math.floor(random() * TOTAL_STOPS); let accumulated = 0; for (let index = 0; index < SYMBOLS.length; index++) { accumulated += SYMBOLS[index].weight; if (stop < accumulated) return index; } return SYMBOLS.length - 1; }
+  function oneSpin(random, payout, sideEnabled) {
+    const stops = Array.from({ length: 5 }, () => drawSymbol(random));
+    const same = stops.every((stop) => stop === stops[0]);
+    const baseReturn = same ? payout[stops[0]] : 0;
+    const sideWin = sideEnabled && stops.slice(0, 3).every((stop) => stop === 4);
+    const sideReturn = sideEnabled ? (sideWin ? 6 : 0) : 0; // Return includes its 1-unit side stake.
+    return { stops, same, baseReturn, sideWin, sideReturn };
+  }
+  function updateModel() {
+    const target = Number(el.rtp.value), current = model(target), sideOn = el.side.checked;
+    $("cherryPayout").textContent = fmt(current.payout[0], 6) + "×";
+    $("hitFrequency").textContent = fmt(current.hitRate * 100, 4) + "%";
+    $("baseEv").textContent = fmt(current.calculatedRtp - 1, 5);
+    $("combinedEv").textContent = sideOn ? fmt((current.calculatedRtp - 1) + SIDE_EV, 5) + " base stakes" : fmt(current.calculatedRtp - 1, 5) + " base stakes";
+    const selectedWagerRtp = sideOn ? (current.calculatedRtp + (SIDE_EV + 1)) / 2 : current.calculatedRtp;
+    $("theoreticalRtp").textContent = fmt(selectedWagerRtp * 100, 4) + "%";
+    return current;
+  }
+  function renderLastSpin(spin, stake, sideEnabled) {
+    [...el.reels.children].forEach((reel, index) => { reel.textContent = SYMBOLS[spin.stops[index]].icon; reel.classList.toggle("winner", spin.same || (spin.sideWin && index < 3)); });
+    const base = spin.baseReturn ? `Base win: ${money(spin.baseReturn * stake)} (${SYMBOLS[spin.stops[0]].name} five-of-a-kind).` : "No base-game five-of-a-kind.";
+    const side = sideEnabled ? (spin.sideWin ? ` Side bet won ${money(6 * stake)} total return.` : " Side bet did not win.") : "";
+    el.summary.textContent = base + side;
+  }
+  function chart(path, initial) {
+    const canvas = el.chart, context = canvas.getContext("2d"), width = canvas.width, height = canvas.height, pad = 44;
+    context.clearRect(0, 0, width, height); context.fillStyle = "#0b0e14"; context.fillRect(0, 0, width, height);
+    const low = Math.min(...path, initial), high = Math.max(...path, initial), range = Math.max(high - low, 1), min = low - range * .08, max = high + range * .08;
+    const x = (index) => pad + index / Math.max(path.length - 1, 1) * (width - pad * 1.4), y = (value) => height - pad - (value - min) / (max - min) * (height - pad * 1.6);
+    context.strokeStyle = "#1c2230"; for (let line = 0; line <= 6; line++) { const lineY = pad / 2 + line * (height - pad) / 6; context.beginPath(); context.moveTo(pad, lineY); context.lineTo(width - pad / 2, lineY); context.stroke(); }
+    context.strokeStyle = "rgba(251,191,36,.75)"; context.setLineDash([8, 8]); context.beginPath(); context.moveTo(pad, y(initial)); context.lineTo(width - pad / 2, y(initial)); context.stroke(); context.setLineDash([]);
+    context.strokeStyle = "#2dd4bf"; context.lineWidth = 2; context.beginPath(); path.forEach((value, index) => index ? context.lineTo(x(index), y(value)) : context.moveTo(x(index), y(value))); context.stroke();
+    context.fillStyle = "#8b95a5"; context.font = "12px system-ui"; context.fillText(`sample points: ${path.length - 1}`, pad, height - 12); context.fillText(`max ${money(high)}`, pad, 20); context.fillText(`min ${money(low)}`, pad, 38);
+  }
+  function reset() {
+    const bankroll = Number(el.bankroll.value || 10000); chart([bankroll], bankroll);
+    ["finalBankroll", "profitLoss", "observedRtp", "totalWagered", "jackpots", "baseWins", "sideWins"].forEach((id) => { $(id).textContent = "—"; $(id).className = ""; });
+    updateModel();
+  }
+  $("runButton").addEventListener("click", () => {
+    const bankroll = Number(el.bankroll.value || 10000), stake = Math.max(.01, Number(el.stake.value || 1)), spins = Math.min(1000000, Math.max(1, Math.floor(Number(el.spins.value || 1))),), sideEnabled = el.side.checked;
+    if (!el.fixed.checked) el.seed.value = "run-" + (crypto.randomUUID?.() ?? Date.now());
+    const current = updateModel(), random = mulberry32(hash(el.seed.value + "|" + el.rtp.value + "|" + sideEnabled));
+    let balance = bankroll, baseReturned = 0, sideReturned = 0, totalWagered = 0, baseWins = 0, jackpots = 0, sideWins = 0, lastSpin;
+    const path = [balance], interval = Math.max(1, Math.ceil(spins / 500));
+    for (let spinNumber = 1; spinNumber <= spins; spinNumber++) {
+      const spin = oneSpin(random, current.payout, sideEnabled); lastSpin = spin;
+      const wager = stake * (sideEnabled ? 2 : 1), returned = stake * (spin.baseReturn + spin.sideReturn);
+      balance += returned - wager; baseReturned += stake * spin.baseReturn; sideReturned += stake * spin.sideReturn; totalWagered += wager;
+      if (spin.same) { baseWins++; if (spin.stops[0] === 4) jackpots++; } if (spin.sideWin) sideWins++;
+      if (spinNumber % interval === 0 || spinNumber === spins) path.push(balance);
+    }
+    const profit = balance - bankroll, observedRtp = (baseReturned + sideReturned) / totalWagered;
+    $("finalBankroll").textContent = money(balance); $("profitLoss").textContent = (profit >= 0 ? "+" : "") + money(profit); $("profitLoss").className = profit >= 0 ? "positive" : "negative";
+    $("observedRtp").textContent = fmt(observedRtp * 100, 4) + "%"; $("totalWagered").textContent = money(totalWagered); $("jackpots").textContent = jackpots.toLocaleString(); $("baseWins").textContent = baseWins.toLocaleString(); $("sideWins").textContent = sideEnabled ? sideWins.toLocaleString() : "off";
+    renderLastSpin(lastSpin, stake, sideEnabled); chart(path, bankroll);
+    const baseExpected = current.calculatedRtp - 1, combinedExpected = sideEnabled ? (baseExpected + SIDE_EV) * stake : baseExpected * stake;
+    const selectedWagerRtp = sideEnabled ? (current.calculatedRtp + (SIDE_EV + 1)) / 2 : current.calculatedRtp;
+    $("theoreticalRtp").textContent = fmt(selectedWagerRtp * 100, 4) + "%";
+    el.explain.innerHTML = `<strong>${spins.toLocaleString()} reproducible spins</strong> using seed <code>${el.seed.value}</code>. Base RTP is ${fmt(current.calculatedRtp * 100, 4)}%. ${sideEnabled ? `The optional side bet adds its own −0.99925-unit EV, producing a combined RTP of ${fmt(selectedWagerRtp * 100, 4)}% across both equal-sized wagers and an expected net result of ${fmt(combinedExpected, 5)} currency units per spin.` : `Expected base-game net result is ${fmt(combinedExpected, 5)} currency units per spin at this stake.`} Observed RTP is a single high-variance sample, not a new theoretical RTP.`;
+  });
+  $("resetButton").addEventListener("click", reset); el.rtp.addEventListener("input", updateModel); el.side.addEventListener("change", updateModel); updateModel(); reset();
+</script>

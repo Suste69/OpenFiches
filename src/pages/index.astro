@@ -55,10 +55,10 @@ import Logo from "../components/Logo.astro";
         houseEdge="1.06%"
         edgeNote="banker bet"
         variance="Low"
-        tags={["cards", "banker", "sidebet"]}
+        tags={["cards", "banker", "side bet beatable"]}
         mathHref="/games/baccarat"
         simulationHref="/games/baccarat/simulator"
-        searchKeywords="baccarat cards banker player tie punto banco low variance sidebet"
+        searchKeywords="baccarat cards banker player tie punto banco low variance sidebet side bet beatable countable advantage play"
       />
       <GameCard
         name="Craps"
@@ -71,7 +71,27 @@ import Logo from "../components/Logo.astro";
         simulationHref="/games/craps/simulator"
         searchKeywords="craps dice pass line dont pass come odds place bet field proposition high variance"
       />
-      <!-- New games get one more <GameCard /> here -->
+      <GameCard
+        name="Slot Machines"
+        icon="🎰"
+        houseEdge="2–8%"
+        edgeNote="typical RTP settings"
+        variance="High–Extreme"
+        tags={["RNG", "reels", "volatility"]}
+        mathHref="/games/slot-machines"
+        simulationHref="/games/slot-machines/simulator"
+        searchKeywords="slots slot machines RNG virtual reels weighted symbols RTP house edge volatility paylines jackpot bonus feature buy simulator"
+      />
+      <GameCard
+        name="Texas Hold’em"
+        icon="🂡"
+        houseEdge="N/A"
+        edgeNote="rake / skill dependent"
+        variance="High"
+        tags={["cards", "community cards", "rake"]}
+        mathHref="/games/texas-holdem"
+        searchKeywords="texas holdem hold'em poker cards community cards flop turn river showdown equity ranges pot odds rake cash game tournament no limit"
+      />
     </div>
 
     <div class="no-results" id="noResults">

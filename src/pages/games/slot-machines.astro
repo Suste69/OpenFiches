@@ -1,0 +1,184 @@
+---
+/**
+ * games/slot-machines.astro — a generic mathematical framework for slots.
+ *
+ * A slot's RTP cannot be derived from its visible theme alone. Exact figures
+ * require the game's reel strips/weights, paytable and feature rules. The
+ * worked examples below are deliberately simplified and labelled as such.
+ */
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+---
+
+<BaseLayout
+  title="Slot Machines — The Math"
+  description="How slot-machine RNGs, weighted virtual reels, paytables, RTP, volatility, bonus features and optional wagers determine the long-run result."
+>
+  <SiteHeader alwaysVisible />
+
+  <main>
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Games</a> / <span>RNG</span> / <strong>Slot Machines</strong>
+    </nav>
+
+    <div class="game-header">
+      <div>
+        <h1>Slot Machines</h1>
+        <p class="subtitle">The visible reels are entertainment; the weighted outcome table and paytable set the price.</p>
+        <div class="header-tags">
+          <span class="tag">RNG</span><span class="tag">weighted reels</span><span class="tag">high variance</span>
+        </div>
+        <a class="sim-link" href="/games/slot-machines/simulator">Open transparent simulator →</a>
+      </div>
+      <dl class="summary-panel">
+        <div><dt>Typical advertised RTP</dt><dd>92%–98%</dd></div>
+        <div><dt>Typical house edge</dt><dd class="bad">2%–8%</dd></div>
+        <div><dt>Variance</dt><dd>High to extreme</dd></div>
+        <div><dt>Player decisions</dt><dd>Usually none</dd></div>
+      </dl>
+    </div>
+
+    <div class="prose">
+      <div class="callout key">
+        <span class="callout-title">Generic analysis, not a title-specific RTP</span>
+        <p>A game’s exact RTP needs its exact reel weights, paytable and feature rules. This page explains how to calculate it and uses explicitly simplified examples; it does not assign an exact RTP to every slot machine.</p>
+      </div>
+
+      <h2 id="how-it-works">How a slot works</h2>
+      <p>A video slot converts a wager into an RNG-selected outcome. The game evaluates the resulting symbol window against its paylines or “ways” rules, then adds any scatter, bonus, jackpot or optional-wager award. A past spin does not make any future result due.</p>
+      <ol>
+        <li>The player chooses a stake and, where offered, paylines or denomination.</li>
+        <li>The RNG selects one stop or weighted outcome for each reel.</li>
+        <li>The game evaluates line/ways wins and feature triggers under the published paytable.</li>
+        <li>The stake is settled and the next spin starts from a new RNG selection.</li>
+      </ol>
+      <p>Modern games often use <strong>virtual reel mapping</strong>: a symbol’s chance depends on how many virtual stops point to it, not on how often it appears in the artwork. Progressive jackpots may also receive a stated fraction of each wager until a qualifying result occurs.</p>
+      <div class="callout warn">
+        <span class="callout-title">Check the specific title</span>
+        <p>RTP settings, reel strips, bonus rules, maximum-bet eligibility and buy-feature availability vary by provider, jurisdiction and sometimes casino. A generic “96% RTP” is an example, not a promise about the machine in front of a player.</p>
+      </div>
+
+      <h2 id="rtp">RTP, expected value and house edge</h2>
+      <p>For a 1-unit spin, let <code>mᵢ</code> be the <strong>total return</strong> (including the returned stake, if any) for mutually exclusive outcome <code>i</code>, with probability <code>pᵢ</code>. The expected return and net expected value are:</p>
+      <div class="formula">
+        RTP = Σ(p<sub>i</sub> × m<sub>i</sub>)
+        <br />EV = RTP − 1
+        <br />house edge = 1 − RTP = −EV
+      </div>
+      <p>Thus a 96% RTP game has an average net result of <strong>−0.04 units per unit wagered</strong>:</p>
+      <div class="formula">
+        EV = 0.96 − 1 = <span class="result">−0.04</span>
+        <br />House edge = <span class="result">4%</span>
+      </div>
+      <p>“Win frequency” is not RTP. A game can pay frequent returns below the stake and still have a low RTP, while a jackpot-heavy game can have rare wins and the same RTP. The complete probability-weighted paytable—not the number of winning spins—determines EV.</p>
+
+      <h2 id="probability-model">Weighted virtual reels</h2>
+      <p>For reel <code>r</code>, let <code>Wᵣ</code> be the sum of its virtual-stop weights and <code>wᵣ(S)</code> the weight for symbol <code>S</code>. Then:</p>
+      <div class="formula">
+        P(reel r shows S) = w<sub>r</sub>(S) / W<sub>r</sub>
+        <br />P(S on all five independent reels) = Π<sub>r=1…5</sub> w<sub>r</sub>(S) / W<sub>r</sub>
+        <br />Total ordered stop combinations = W<sub>1</sub> × W<sub>2</sub> × W<sub>3</sub> × W<sub>4</sub> × W<sub>5</sub>
+      </div>
+      <p>For example, in a deliberately simplified five-reel model with 20 equally likely stops per reel and one jackpot stop on each reel:</p>
+      <div class="formula">
+        P(jackpot) = (1/20)<sup>5</sup> = 1 / 3,200,000
+        <br />= <span class="result">0.00003125%</span>
+      </div>
+      <p>If this event returns 10,000× the stake, its RTP contribution alone is <code>(1 / 3,200,000) × 10,000 = 0.003125</code>, or 0.3125%. It does <em>not</em> determine the full game RTP: every smaller line win, scatter award, free-spin outcome and jackpot contribution must also be included.</p>
+
+      <h3>From a paytable to an exact RTP</h3>
+      <p>When the reel strips and rules are available, enumerate every distinct outcome, including overlapping paylines and feature states, exactly once. For each outcome, calculate its total return and add its probability-weighted contribution.</p>
+      <div class="formula">
+        RTP<sub>base</sub> = Σ P(outcome) × total return(outcome)
+        <br />RTP<sub>game</sub> = RTP<sub>base</sub> + RTP<sub>free spins</sub> + RTP<sub>bonus</sub> + RTP<sub>jackpot</sub>
+      </div>
+      <p>Free spins need care: their expected prize is conditional on triggering them. If a bonus triggers with probability <code>p</code> and its expected total return is <code>E[bonus return | trigger]</code>, its per-spin RTP contribution is <code>p × E[bonus return | trigger]</code>.</p>
+
+      <h2 id="volatility">Volatility: same average, different risk</h2>
+      <p>RTP measures the long-run average, not the likely result of a short session. Volatility describes how widely results vary around that average. A game that directs much of its RTP to a rare jackpot can have the same 96% RTP as one that pays small returns frequently, while producing far larger swings.</p>
+      <table>
+        <thead><tr><th>Feature</th><th>Usually affects</th><th>Does not by itself determine</th></tr></thead>
+        <tbody>
+          <tr><td>Rare large awards</td><td>Higher variance; longer losing stretches</td><td>Whether RTP is high or low</td></tr>
+          <tr><td>Frequent small awards</td><td>Higher hit frequency; often smoother results</td><td>Whether the game is positive EV</td></tr>
+          <tr><td>Higher RTP configuration</td><td>Lower expected loss per unit wagered</td><td>A guaranteed short-term outcome</td></tr>
+          <tr><td>Progressive jackpot</td><td>May move value into an infrequent event</td><td>The jackpot’s EV without its hit probability and contribution rules</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="strategy">Strategies and bankroll systems</h2>
+      <p>After the wager is selected, ordinary slots offer no hit/stand-style decision that changes the probability distribution. Choosing a title, RTP configuration or stake changes the amount or distribution of money at risk; it does not make an independently RNG-driven negative-EV spin positive.</p>
+      <table>
+        <thead><tr><th>Approach</th><th>What changes</th><th>Mathematical result</th></tr></thead>
+        <tbody>
+          <tr><td>Flat betting</td><td>Same stake each spin</td><td>At house edge <em>h</em>, expected loss after <em>N</em> spins of <em>b</em> units is −h × N × b.</td></tr>
+          <tr><td>Increasing stake / Martingale</td><td>Stake size after wins or losses</td><td>Outcome probabilities and per-unit EV do not change; limits and bankroll can make losses larger.</td></tr>
+          <tr><td>Maximum bet</td><td>More money at risk; sometimes feature eligibility</td><td>Can only improve RTP if the posted rules assign extra value to it; calculate that exact feature separately.</td></tr>
+          <tr><td>“Hot” or “cold” machine selection</td><td>No defined mathematical input under independent RNG</td><td>Previous results do not alter the next-spin distribution.</td></tr>
+        </tbody>
+      </table>
+      <div class="formula">
+        If every spin has house edge h and stakes are b<sub>1</sub>, …, b<sub>n</sub>:
+        <br />E[total result] = <span class="result">−h × (b<sub>1</sub> + … + b<sub>n</sub>)</span>
+      </div>
+      <div class="callout warn"><span class="callout-title">No progression repairs a negative edge</span><p>Betting systems can change variance and the chance of ending a short session ahead. They cannot change the expected loss per unit when each wager has the same negative expected value.</p></div>
+
+      <h2 id="optional-wagers">Optional wagers and features</h2>
+      <p>Slots do not have universal side bets. If a title offers an optional wager, feature buy, gamble option or jackpot add-on, it is a separate product with its own rules and EV. Never infer its edge from the base-game RTP.</p>
+
+      <h3>Illustrative “first three reels match” wager</h3>
+      <p>Consider a <strong>hypothetical</strong> 1-unit add-on: it pays a net +5 if the first three reels show one particular named symbol, and −1 otherwise. With 20 equally likely stops on each reel and one qualifying stop per reel:</p>
+      <div class="formula">
+        P(three named symbols) = (1/20)<sup>3</sup> = 1/8,000
+        <br />EV = (1/8,000 × 5) + (7,999/8,000 × −1)
+        <br />= <span class="result">−0.99925 units; house edge 99.925%</span>
+      </div>
+      <p>If the rule instead pays when <em>any</em> of 20 symbols matches across the first three reels, the probability is <code>1/20² = 1/400</code>, not <code>1/20³</code>. The required fair net payout would be 399:1; a +5 payout would still be extremely unfavorable. This distinction shows why the exact event definition matters.</p>
+
+      <h3>Feature buys</h3>
+      <p>A feature buy normally <strong>triggers the feature immediately</strong>; it is not a separate wager that sometimes fails to trigger. If it costs <code>C</code> times the base stake and the expected total feature return is <code>B</code> times the base stake, then:</p>
+      <div class="formula">
+        EV<sub>buy</sub> = B − C
+        <br />RTP<sub>buy</sub> = B / C
+        <br />House edge<sub>buy</sub> = 1 − B/C
+      </div>
+      <p>For example, a 100× buy with an expected feature return of 96× has EV −4 base-bet units and a 4% house edge on its 100-unit cost. The actual value requires the title’s bonus distribution; “1 in 10,000 to trigger” is relevant to natural base-game triggers, not to an instant buy.</p>
+
+      <h3>Progressive jackpots</h3>
+      <p>For a progressive contribution, calculate the jackpot component from its current value and qualifying probability. If <code>J</code> is the total return on a qualifying hit with probability <code>p</code>, its RTP contribution is <code>p × J</code>. The remaining base/feature return and any contribution deducted from ordinary awards still matter. A progressive can become unusually valuable only when the complete current-value calculation supports it.</p>
+
+      <h2 id="sources">Sources &amp; methodology</h2>
+      <ul class="sources">
+        <li><a href="https://www.gammastack.com/blog/the-basic-mathematics-of-slot-game-machines/" target="_blank" rel="noopener">GammaStack — The Basic Mathematics of Slot Game Machines</a>: supplied reference for RNG, RTP and volatility background.</li>
+        <li><a href="https://runtheslots.com/learn/slot-machine-probability" target="_blank" rel="noopener">RunTheSlots — Slot Machine Probability</a>: supplied reference for probability and progressive-jackpot discussion.</li>
+        <li><a href="https://chipy.com/academy/slots/slots-odds" target="_blank" rel="noopener">Chipy Academy — The Maths Behind Slots Odds</a>: supplied reference for payout odds and house-edge concepts.</li>
+        <li><a href="https://en.wikipedia.org/wiki/Gambling_mathematics" target="_blank" rel="noopener">Wikipedia — Gambling mathematics</a>: general expected-value and house-edge definitions.</li>
+        <li><a href="https://www.vegasinsider.com/casinos/house-edge/" target="_blank" rel="noopener">Vegas Insider — What Is House Edge and RTP?</a>: supplied practical RTP/house-edge reference.</li>
+      </ul>
+      <p><strong>Methodology:</strong> The equations on this page use probability enumeration for independent weighted reels. The 20-stop examples and the optional wager are illustrative, not a representation of a real title. Exact title-specific results require audited reel mappings, all payout rules and the bonus-state model. Displayed decimals are rounded.</p>
+
+      <div class="edit-link"><a href="https://github.com/Suste69/OpenFiches/edit/main/src/pages/games/slot-machines.astro">Spot an error? Edit this page on GitHub →</a></div>
+    </div>
+  </main>
+
+  <SiteFooter />
+</BaseLayout>
+
+<style>
+  main { max-width: 960px; margin: 0 auto; padding: 110px 24px 60px; }
+  .breadcrumb { font-size: 13px; color: var(--ink-soft); margin-bottom: 28px; }
+  .breadcrumb a, .edit-link a { text-decoration: none; }
+  .game-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; flex-wrap: wrap; margin-bottom: 8px; }
+  .game-header h1 { font-size: clamp(32px, 5vw, 44px); letter-spacing: -1px; }
+  .subtitle { color: var(--ink-soft); margin-top: 8px; max-width: 520px; }
+  .header-tags { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .tag { background: var(--accent-soft); color: var(--accent); padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .sim-link { display: inline-flex; margin-top: 18px; padding: 10px 16px; border-radius: 10px; background: var(--accent); color: #0d1017; text-decoration: none; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+  .summary-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; display: flex; flex-direction: column; gap: 8px; min-width: 235px; }
+  .summary-panel div { display: flex; justify-content: space-between; gap: 24px; font-size: 13px; }
+  .summary-panel dt { color: var(--ink-soft); text-transform: uppercase; font-size: 10px; letter-spacing: 1px; padding-top: 2px; }
+  .summary-panel dd { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .summary-panel dd.bad { color: var(--danger); }
+  .edit-link { margin-top: 40px; padding-top: 24px; border-top: 1px dashed var(--border); font-size: 14px; }
+</style>

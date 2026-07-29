@@ -51,3 +51,5 @@ mockups/                       # early HTML design experiments
 
 Want to add a game, a side bet, or fix a formula? Contributions are welcome.
 Each game needs exact probabilities, EV derivations, sources, and eventually a simulator validated against theoretical values.
+
+For the required game-page structure, mathematical checklist, side-bet and strategy guidance, simulator expectations, and bottom links, use the [new game contribution template](docs/game-template.md).
