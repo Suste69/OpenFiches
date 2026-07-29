@@ -28,12 +28,13 @@ import SiteFooter from "../../components/SiteFooter.astro";
       <div>
         <h1>Baccarat</h1>
         <p class="subtitle">
-          A game with almost no decisions — and a house edge you cannot escape.
+          The base game is not realistically beatable; a few side bets can become +EV only under verified conditions.
         </p>
         <div class="header-tags">
           <span class="tag">cards</span>
           <span class="tag">8 decks</span>
           <span class="tag">side bets</span>
+          <span class="tag beatable">side bet beatable</span>
         </div>
         <a class="sim-link" href="/games/baccarat/simulator">Open count simulator →</a>
       </div>
@@ -41,7 +42,8 @@ import SiteFooter from "../../components/SiteFooter.astro";
         <div><dt>House edge</dt><dd class="bad">1.06%</dd></div>
         <div><dt>RTP</dt><dd>98.94%</dd></div>
         <div><dt>Variance</dt><dd>Low</dd></div>
-        <div><dt>EV-changing strategies</dt><dd>None</dd></div>
+        <div><dt>Base game beatable?</dt><dd class="bad">No</dd></div>
+        <div><dt>Side bets beatable?</dt><dd class="good">Sometimes*</dd></div>
       </dl>
     </div>
 
@@ -244,11 +246,21 @@ import SiteFooter from "../../components/SiteFooter.astro";
           <tr><td>5 Treasures group</td><td class="num">2.97%–10.19%</td><td>Some components are vulnerable, especially Blazing 7's in the cited analysis</td></tr>
         </tbody>
       </table>
+      <div class="callout key">
+        <span class="callout-title">Verdict: “side bet beatable” is conditional, not a recommendation</span>
+        <p>
+          <strong>Banker, Player and Tie are not beatable in normal play.</strong> A side bet earns the
+          <strong>side bet beatable</strong> label only when its exact paytable has been verified and a
+          published count shows that the remaining shoe can make its EV positive. You do not bet every
+          hand: you wait for its trigger, skip all other hands, and reassess after every card. Without
+          a shoe, deep penetration, the stated payout and the stated trigger, the label does not apply.
+        </p>
+      </div>
       <p>
         This creates an important distinction for Open Fiches: <strong>the base game is not realistically
         beatable by counting</strong>, but some <strong>side bets</strong> can become player-favorable under
-        very specific rules, penetration and paytables. Those cases deserve their own pages because each
-        one needs a full EV derivation, count system and validation against exact probabilities.
+        very specific rules, penetration and paytables. Each claim needs a full EV derivation, count
+        system and validation against exact probabilities.
       </p>
 
       <!-- ============ THE LONG RUN ============ -->
@@ -283,9 +295,10 @@ import SiteFooter from "../../components/SiteFooter.astro";
         <span class="callout-title">Practical verdict</span>
         <p>
           A perfect player betting only Banker is still playing a −1.06% game. Ordinary baccarat card
-          counting is mathematically possible but economically useless. Real baccarat advantage play,
-          when it exists, usually comes from <strong>side bets</strong>, <strong>deep shoe penetration</strong>,
-          or <strong>known-card / exposed-card information</strong> — not from normal Banker/Player betting.
+          counting is mathematically possible but economically useless. The only normal-play route that
+          can be <strong>conditionally beatable</strong> is a <strong>specific side bet</strong> at a specific
+          payout, after its count reaches its trigger, in a deeply dealt shoe. It is not a system for
+          predicting Banker or Player, and it is not an instruction to bet every hand.
         </p>
       </div>
 
@@ -392,12 +405,23 @@ import SiteFooter from "../../components/SiteFooter.astro";
         </p>
       </div>
 
-      <h3>3. Countable side bets</h3>
+      <h3>3. Countable side bets: how a side bet becomes beatable</h3>
       <p>
         This is where Baccarat advantage play becomes more realistic. Some side bets depend heavily on
         a small group of key ranks. If enough of those ranks remain in the shoe, the side bet can flip
         from negative EV to positive EV. These methods are extremely paytable- and rule-dependent.
       </p>
+      <ol>
+        <li><strong>Verify the exact bet and payout.</strong> A similar name or a different payout means a different EV; never reuse a trigger blindly.</li>
+        <li><strong>Confirm that it is a shoe game, not a CSM.</strong> The count needs cards to remain out of play; a continuous shuffle removes this information.</li>
+        <li><strong>Keep the published count.</strong> Add each exposed card's tag to the running count; for a balanced system, divide by decks remaining to obtain the true count.</li>
+        <li><strong>Bet only at or beyond the trigger.</strong> Below it, the side bet retains its normal negative house edge. A trigger identifies a conditional +EV situation, not a guaranteed win.</li>
+        <li><strong>Check penetration and variance.</strong> An early cut card can remove most opportunities, while rare high-payout events still create large swings even when the EV is positive.</li>
+      </ol>
+      <div class="formula">
+        EV = P(win | remaining shoe) × net win − P(lose | remaining shoe) × stake
+        <br />A side bet is beatable only when this conditional EV is &gt; 0 at its verified trigger.
+      </div>
 
       <h3>3A. Bad Beat: natural 9 beats natural 8</h3>
       <p>
@@ -413,10 +437,13 @@ import SiteFooter from "../../components/SiteFooter.astro";
         </tbody>
       </table>
       <p>
-        The trigger in the cited simulation was <strong>true count +6</strong>. With an 8-deck shoe and
-        the cut card at 14 cards, the side bet was positive EV on about <strong>14.31%</strong> of hands,
-        with an average edge of about <strong>10.54%</strong> when triggered. This is a genuine countable
-        opportunity — but only if that exact side bet, paytable and dealing procedure are available.
+        <strong>How to treat it:</strong> use this exact tag set, convert the running count to a true
+        count using the estimated decks remaining, and consider Bad Beat only at <strong>TC +6 or higher</strong>.
+        In the cited 8-deck, 14-card-cut model, that condition occurred on about <strong>14.31%</strong> of
+        hands and produced an average player edge of about <strong>10.54%</strong> <em>on the hands actually
+        bet</em>. Every hand below TC +6 remains a negative-EV Bad Beat wager and should be skipped.
+        This is a genuine countable opportunity — but only if that exact side bet, paytable and dealing
+        procedure are available.
       </p>
 
       <h3>3B. UR Way Egalite: Tie on 7</h3>
@@ -435,10 +462,12 @@ import SiteFooter from "../../components/SiteFooter.astro";
         </tbody>
       </table>
       <p>
-        In that model, the trigger was <strong>running count +33</strong>. With the cut card at 14 cards,
-        the bet frequency was about <strong>22.0%</strong>, with an average edge of about
-        <strong>12.1%</strong>. Moving the cut card deeper into the shoe protection zone reduced the value,
-        which shows why cut-card placement is one of the main defenses against Baccarat side-bet counting.
+        <strong>How to treat it:</strong> this is an unbalanced count, so keep the raw running total and
+        consider the bet only at <strong>+33 or above</strong>; do not divide by decks remaining. In the cited
+        model with a 14-card cut, the trigger appeared on about <strong>22.0%</strong> of hands and the
+        average edge was about <strong>12.1%</strong> <em>when triggered</em>. If the count is below +33,
+        skip the bet. Moving the cut card deeper into the shoe protection zone reduced the value, which
+        shows why cut-card placement is one of the main defenses against Baccarat side-bet counting.
       </p>
 
       <h3>3C. 5 Treasures side bets</h3>
@@ -463,19 +492,24 @@ import SiteFooter from "../../components/SiteFooter.astro";
         </tbody>
       </table>
       <p>
-        These bets can also be approached with <strong>team play</strong>: each player tracks one count,
-        and the team concentrates wagers when one count crosses its trigger. This can increase the total
-        hourly value, but it also increases variance and casino attention. Casinos may refuse service or
-        restrict play, so this belongs in the site as math and risk analysis — not as a guarantee.
+        <strong>How to treat them:</strong> calculate the appropriate true count for each component and
+        bet only at the listed threshold: Fortune 7 and Blazing 7's at <strong>TC +4</strong>, Cover All at
+        <strong>TC +2</strong>. The percentage in the final column is the estimated edge after the trigger,
+        not an edge on every hand. These bets can also be approached with <strong>team play</strong>: each
+        player tracks one count, and the team concentrates wagers when one count crosses its trigger.
+        This can increase the total hourly value, but it also increases variance and casino attention.
+        Casinos may refuse service or restrict play, so this belongs in the site as math and risk analysis
+        — not as a guarantee.
       </p>
 
       <h3>3D. Big Tiger</h3>
       <p>
         Big Tiger pays when the Banker wins with a three-card total of 6. It is technically countable,
         but the off-the-top house edge is very high: about <strong>15.2533%</strong>. Advanced Advantage
-        Play found a count with target <strong>true count +8</strong>, but the result was weak — about
-        <strong>0.256 units won per 100 hands</strong> in the tested model. It is an example of a method
-        that exists mathematically but is not very attractive in practice.
+        Play found a count with target <strong>true count +8</strong>: below that point, do not treat it as
+        beatable. Even at the trigger, the tested result was weak — about <strong>0.256 units won per
+        100 hands</strong>. It is an example of a method that exists mathematically but is not very
+        attractive in practice.
       </p>
 
       <h3>4. Known-card play</h3>
@@ -594,6 +628,7 @@ import SiteFooter from "../../components/SiteFooter.astro";
     display: flex;
     gap: 8px;
     margin-top: 14px;
+    flex-wrap: wrap;
   }
 
   .tag {
@@ -603,6 +638,11 @@ import SiteFooter from "../../components/SiteFooter.astro";
     border-radius: 999px;
     font-size: 12px;
     font-weight: 600;
+  }
+
+  .tag.beatable {
+    background: rgba(34, 197, 94, 0.16);
+    color: #4ade80;
   }
 
   .sim-link {
@@ -652,6 +692,10 @@ import SiteFooter from "../../components/SiteFooter.astro";
 
   .summary-panel dd.bad {
     color: var(--danger);
+  }
+
+  .summary-panel dd.good {
+    color: #4ade80;
   }
 
   .section-note {
